@@ -47,7 +47,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 
 ## 公开前检查
 
-- `skills/dst-modding/mod-skills/` 与 `skills/dst-modding/animation/` 是 Git 子模块（见 `.gitmodules`）。修改它们时先在子模块目录里提交并推送，再回到本仓库提交新的子模块指针；只推本仓库会让别人拉到不存在的提交。
-- 克隆本仓库用 `git clone --recursive`，已克隆的用 `git submodule update --init`。`animation` 对应的仓库目前是私有的，公开后其他人拉不到这个子模块。
+- `skills/dst-modding/mod-skills/` 是 Git 子模块（见 `.gitmodules`）。修改它时先在子模块目录里提交并推送，再回到本仓库提交新的子模块指针；只推本仓库会让别人拉到不存在的提交。
+- 克隆本仓库用 `git clone --recursive`，已克隆的用 `git submodule update --init`。
 - `private/`、`output/` 已在 `.gitignore` 中；`git status` 里不应出现这两个目录下的文件。
 - 新增的敏感配置同步加到 `private.example/`（只放占位值）。

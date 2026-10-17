@@ -27,7 +27,7 @@
 - 动作制作流程：[animation/README.md](animation/README.md)，先读其中的 [00-注意事项](animation/00-注意事项.md)。
 - 相关工具（ktools、FMOD Designer、动画贴图打包工具、OpenSpine 等）路径见 `private/paths.md`。
 
-> `mod-skills/` 与 `animation/` 各自是独立的 Git 仓库（保留了原有提交历史和远程地址），在各自目录里提交、推送。
+> `mod-skills/` 是独立的 Git 仓库（子模块），在其目录里提交、推送；`animation/` 是本工作流的普通文件。
 
 ## 贴图
 
