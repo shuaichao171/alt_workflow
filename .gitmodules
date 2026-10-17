@@ -1,0 +1,6 @@
+[submodule "skills/dst-modding/mod-skills"]
+	path = skills/dst-modding/mod-skills
+	url = https://github.com/shuaichao171/dst-mod-SKILLS.git
+[submodule "skills/dst-modding/animation"]
+	path = skills/dst-modding/animation
+	url = https://github.com/shuaichao171/dst-action-create-workflow.git

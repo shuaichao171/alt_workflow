@@ -17,14 +17,17 @@
 ## 模组开发
 
 - 编写《饥荒》模组前，必须根据具体内容选择并使用对应的技能。
-- 《饥荒》模组技能目录：`DST_SKILLS_DIR`
+- 《饥荒》模组技能目录：[mod-skills/](mod-skills/)，分类速查见 [mod-skills/SKILL-CATALOG.md](mod-skills/SKILL-CATALOG.md)。
 - 根据当前任务从该目录中选择最少数量的相关 Skill；采取任务行动前，完整读取每个选中 Skill 的 `SKILL.md`。
 - 不要读取与当前任务无关的其他 Skill。后续任务的内容发生变化时，重新判断需要使用的 Skill。
+- 部分 Skill 里写的源码目录 `D:\steam\...\data\scripts` 是作者本机的默认值，以 `DST_DATA_DIR` 的实际值为准。
 
 ## 饥荒动作制作
 
-- 动作制作流程：`DST_ANIM_GUIDE_DIR`
+- 动作制作流程：[animation/README.md](animation/README.md)，先读其中的 [00-注意事项](animation/00-注意事项.md)。
 - 相关工具（ktools、FMOD Designer、动画贴图打包工具、OpenSpine 等）路径见 `private/paths.md`。
+
+> `mod-skills/` 与 `animation/` 各自是独立的 Git 仓库（保留了原有提交历史和远程地址），在各自目录里提交、推送。
 
 ## 贴图
 

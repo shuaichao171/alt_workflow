@@ -21,5 +21,3 @@
 | `DST_DATA_DIR` | 《饥荒联机版》数据目录 | `<Steam>\steamapps\common\Don't Starve Together\data` |
 | `DS_GAME_DIR` | 《饥荒》单机版目录 | `<Steam>\steamapps\common\dont_starve` |
 | `DST_CLIENT_LOG` | 《饥荒联机版》客户端日志 | `<文档>\Klei\DoNotStarveTogether\client_log.txt` |
-| `DST_SKILLS_DIR` | 《饥荒》模组技能目录 | `<目录>` |
-| `DST_ANIM_GUIDE_DIR` | 饥荒动作制作流程 | `<目录>` |
