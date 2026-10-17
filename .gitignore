@@ -1,0 +1,8 @@
+# 敏感内容：密钥、本机路径（模板见 private.example/）
+private/
+
+# 子代理输出与中间文件
+output/
+
+__pycache__/
+*.pyc

@@ -1,0 +1,21 @@
+{
+  "description": "画图代理：根据提示词生成或编辑位图，支持参考图和透明背景",
+  "output": "files",
+  "timeout": 600,
+  "backends": [
+    {
+      "type": "codex_image",
+      "sandbox": "workspace-write",
+      "generated_images_dir": "~/.codex/generated_images",
+      "prompt_template": "Use your built-in image generation tool with the gpt-image-2.5-sunburst model to create ONE image for the request below. Do not create, edit or delete any other files.\n\nRequest:\n{prompt}",
+      "reference_note": "Use the attached image(s) as reference for style, size and viewpoint.",
+      "transparent_suffix": "The image must have a TRANSPARENT background (PNG with an alpha channel): isolated object, no background color, no shadow on the ground."
+    },
+    {
+      "type": "openai_images",
+      "secret": "painter_api",
+      "model": "gpt-image-2.5-sunburst",
+      "size": "auto"
+    }
+  ]
+}

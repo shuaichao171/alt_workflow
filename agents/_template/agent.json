@@ -1,0 +1,16 @@
+{
+  "description": "模板代理：复制本目录并改名，修改 description 与 backends，然后在 agents/INDEX.md 登记",
+  "output": "text",
+  "timeout": 60,
+  "backends": [
+    {
+      "type": "command",
+      "cmd": ["python", "-c", "import sys; print('echo:', sys.stdin.read())"],
+      "stdin": "{prompt}"
+    },
+    {
+      "type": "openai_chat",
+      "secret": "template_api"
+    }
+  ]
+}

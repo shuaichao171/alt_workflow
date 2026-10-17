@@ -1,0 +1,19 @@
+{
+  "description": "识图代理：识别图片内容、读取图中文字、检查 UI 截图或生成结果",
+  "output": "text",
+  "timeout": 300,
+  "requires_image": true,
+  "default_prompt": "Describe this image in detail, including any visible text.",
+  "backends": [
+    {
+      "type": "openai_chat",
+      "secret": "vision_api",
+      "system": "You are a precise image analyst. Answer in the same language as the question."
+    },
+    {
+      "type": "codex_text",
+      "sandbox": "read-only",
+      "prompt_template": "Look at the attached image(s) and answer the question below. Only answer; do not run commands or edit files. Answer in the same language as the question.\n\nQuestion:\n{prompt}"
+    }
+  ]
+}
