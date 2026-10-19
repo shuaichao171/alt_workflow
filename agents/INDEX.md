@@ -23,6 +23,7 @@ python scripts/call_agent.py --doctor      # 环境自检：Python、Pillow、pr
 | --- | --- | --- | --- | --- |
 | `painter` | 生成/编辑位图，支持参考图、`--transparent`、`--fix-alpha` | `files` | `codex_image`（额度）→ `openai_images` | [painter/agent.json](painter/agent.json)，密钥 `painter_api` |
 | `vision` | 识图：描述图片、读图中文字、检查 UI 截图和生成结果（必须 `-i`） | `text` | `openai_chat` → `codex_text`（额度） | [vision/agent.json](vision/agent.json)，密钥 `vision_api` |
+| `glm-代码审查` | 代码审查：代码或 diff 放进提示词（或 `--prompt-file`），返回按严重程度分级的问题清单 | `text` | `openai_chat` | [glm-代码审查/agent.json](glm-代码审查/agent.json)，密钥 `glm_api` |
 
 使用画图代理前先读 [../skills/image-gen/SKILL.md](../skills/image-gen/SKILL.md)。
 
