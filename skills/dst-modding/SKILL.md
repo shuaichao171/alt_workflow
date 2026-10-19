@@ -26,6 +26,14 @@
 
 - 动作制作流程：[animation/README.md](animation/README.md)，先读其中的 [00-注意事项](animation/00-注意事项.md)。
 - 相关工具（ktools、FMOD Designer、动画贴图打包工具、OpenSpine 等）路径见 `private/paths.md`。
+- animation/ 流程按可独立发布设计，内部用 `*_HOME` 环境变量名引用工具路径；在本工作流内使用时按下表映射到 `private/paths.md` 的占位名取实际路径：
+
+  | animation/ 里的名字 | `private/paths.md` 占位名 |
+  | --- | --- |
+  | `OPENSPINE_HOME` | `OPENSPINE_DIR` |
+  | `DST_MOD_TOOLS_HOME` | `DST_MOD_TOOLS_DIR` |
+  | `DST_GAME_HOME` | `DST_GAME_HOME`（同名条目） |
+  | `DST_SCML_ANALYZER` | `DST_SCML_ANALYZER`（同名条目） |
 
 > `mod-skills/` 是独立的 Git 仓库（子模块），在其目录里提交、推送；`animation/` 是本工作流的普通文件。
 

@@ -21,3 +21,5 @@
 | `DST_DATA_DIR` | 《饥荒联机版》数据目录 | `<Steam>\steamapps\common\Don't Starve Together\data` |
 | `DS_GAME_DIR` | 《饥荒》单机版目录 | `<Steam>\steamapps\common\dont_starve` |
 | `DST_CLIENT_LOG` | 《饥荒联机版》客户端日志 | `<文档>\Klei\DoNotStarveTogether\client_log.txt` |
+| `DST_GAME_HOME` | 《饥荒联机版》安装根目录（`DST_DATA_DIR` 的上两级） | `<Steam>\steamapps\common\Don't Starve Together` |
+| `DST_SCML_ANALYZER` | 已审核的 SCML 分析器脚本（animation/ 流程用） | `<脚本路径>` |
