@@ -5,6 +5,7 @@
 """
 import base64
 import json
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -54,8 +55,11 @@ def run_images(cfg, ctx):
         if item.get("b64_json"):
             raw = base64.b64decode(item["b64_json"])
         elif item.get("url"):
-            with urllib.request.urlopen(item["url"], timeout=ctx.timeout) as r:
-                raw = r.read()
+            try:
+                with urllib.request.urlopen(item["url"], timeout=ctx.timeout) as r:
+                    raw = r.read()
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                raise BackendError(f"下载生成图片失败: {e}")
         else:
             continue
         path = output_name(ctx, i, len(items), ext)

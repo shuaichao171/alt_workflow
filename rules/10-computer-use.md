@@ -1,6 +1,6 @@
 # Computer Use 生命周期
 
-适用于通过截图 + 鼠标键盘操作 Windows 桌面应用的任务（如 Codex 的 `computer-use`、Claude 的 computer use）。
+适用于通过截图 + 鼠标键盘操作 Windows 桌面应用的任务（如 Codex 的 `computer-use`、Claude 的 computer use）。软件启停的通用规则见 [00-general.md](00-general.md)，本文件只补充 `computer-use` 特有的生命周期约束。
 
 - 完成依赖 `computer-use` 的操作后，应立即停止使用该技能，防止影响用户自己操作电脑。
 - `computer-use` 仅用于操作 Windows 应用界面，不用于执行终端命令。
@@ -9,6 +9,5 @@
 - UI 操作按「启动与操作 → UI 验证 → 清理关闭」三个阶段执行。
 - 用户要求的 UI 操作完成，或 UI 验证已经成功/明确失败后，立即进入清理阶段。
 - 清理阶段只允许关闭本次任务启动的软件；关闭完成后不得再次调用 `computer-use`、`sky` 或 `node_repl`。
-- 如果本次任务没有启动软件，不得关闭用户原本已经打开的软件。
 - 截图、窗口捕获或 UI 自动化失败时，不得继续进行无关的可访问性检查、坐标尝试或重复操作。应记录错误；如果软件由助手启动，只执行一次关闭操作，然后停止使用 `computer-use`。
 - `computer-use` 停止后，后续只能使用终端、代码检查和测试工具，不得为了补充验证重新启动软件或重新调用 `computer-use`。

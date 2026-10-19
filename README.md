@@ -27,6 +27,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 3. 检查子代理是否可用：
    ```
    python scripts/call_agent.py --list
+   python scripts/call_agent.py --doctor   # 更全面的环境自检（Pillow、private 配置、子模块）
    ```
 
 ## 接入其他项目
@@ -49,5 +50,5 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 
 - `skills/dst-modding/mod-skills/` 是 Git 子模块（见 `.gitmodules`）。修改它时先在子模块目录里提交并推送，再回到本仓库提交新的子模块指针；只推本仓库会让别人拉到不存在的提交。
 - 克隆本仓库用 `git clone --recursive`，已克隆的用 `git submodule update --init`。
-- `private/`、`output/` 已在 `.gitignore` 中；`git status` 里不应出现这两个目录下的文件。
+- `private/`、`output/` 已在 `.gitignore` 中；提交前运行 `python scripts/check_public.py` 自动检查（两个目录未被跟踪、公开文件无真实密钥）。
 - 新增的敏感配置同步加到 `private.example/`（只放占位值）。

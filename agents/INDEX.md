@@ -7,6 +7,7 @@
 ```
 python scripts/call_agent.py <代理名> "<提示词>" [-i 图片 ...] [-o 输出目录] [--backend 后端类型] [--dry-run]
 python scripts/call_agent.py --list        # 查看每个代理的后端是否已配置可用
+python scripts/call_agent.py --doctor      # 环境自检：Python、Pillow、private 配置、子模块、后端
 ```
 
 - `scripts/call_agent.py` 相对于工作流根目录；在其他项目里工作时，用工作流根目录拼出脚本路径即可，脚本可在任意当前目录下运行。
@@ -14,6 +15,7 @@ python scripts/call_agent.py --list        # 查看每个代理的后端是否�
 - 结果是 JSON：`ok` 是否成功，`backend` 实际使用的后端，`files` 生成的文件，`text` 文字回复，`attempts` 每个后端的尝试记录。
 - 后端按 `agent.json` 中的顺序尝试：未配置密钥的自动跳过，失败的换下一个。
 - 耗时较长（Codex 3～5 分钟）。在 Claude Code 中用 10 分钟超时或后台运行。
+- 其他参数：`--prompt-file 文件` 或省略提示词/传 `-` 从 stdin 读取；`--transparent` 透明背景；`--fix-alpha` 把 alpha ≥250 补满为 255（需 Pillow）；`--timeout 秒`（默认取 agent.json 的 timeout 或 600）。
 
 ## 代理列表
 

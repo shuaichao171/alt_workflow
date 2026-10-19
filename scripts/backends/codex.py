@@ -25,10 +25,21 @@ def _exe(cfg):
 
 def check(cfg, ctx):
     try:
-        _exe(cfg)
+        exe = _exe(cfg)
     except BackendError as e:
         return str(e)
-    return None
+    try:  # 快速预检登录状态，避免未登录时白等一次完整运行才发现
+        proc = subprocess.run([exe, "login", "status"], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=15)
+    except (subprocess.TimeoutExpired, OSError):
+        return None  # 无法快速确认，放行到运行阶段再验证
+    if proc.returncode == 0:
+        return None
+    lines = (proc.stdout or proc.stderr or "").strip().splitlines()
+    first = lines[0] if lines else f"退出码 {proc.returncode}"
+    if "usage" in first.lower() or "unrecognized" in first.lower():
+        return None  # 旧版 CLI 没有 login status 子命令，无法预检
+    return f"Codex CLI 未登录或不可用：{first}"
 
 
 def _run(cfg, ctx, prompt, sandbox, backend):

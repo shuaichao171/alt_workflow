@@ -2,6 +2,7 @@
 """子代理统一调用入口。
 
     python scripts/call_agent.py --list                         # 列出子代理及后端可用情况
+    python scripts/call_agent.py --doctor                      # 环境自检：Pillow、private 配置、子模块、后端
     python scripts/call_agent.py painter "a red apple icon" --transparent -o out/
     python scripts/call_agent.py vision "图里有什么文字？" -i shot.png
     python scripts/call_agent.py painter "..." --backend openai_images --dry-run
@@ -12,12 +13,13 @@
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from backends import BACKENDS  # noqa: E402
-from backends.common import OUTPUT_DIR, ROOT, BackendError, Context, check_image, fix_alpha, load_secrets  # noqa: E402
+from backends.common import OUTPUT_DIR, PRIVATE_DIR, ROOT, BackendError, Context, check_image, fix_alpha, load_secrets  # noqa: E402
 
 AGENTS_DIR = ROOT / "agents"
 
@@ -50,8 +52,56 @@ def cmd_list(secrets):
     return rows
 
 
+def cmd_doctor(secrets):
+    """环境自检：Python、Pillow、private 配置、secrets 条目、子模块和各代理后端可用性。"""
+    rows = []
+
+    def add(item, ok, note=""):
+        rows.append({"item": item, "ok": bool(ok), "note": note})
+
+    add(f"Python {sys.version.split()[0]}", True)
+    try:
+        import PIL  # noqa: F401
+        add("Pillow（图片检查 / --fix-alpha）", True)
+    except ImportError:
+        add("Pillow（图片检查 / --fix-alpha）", False, "未安装：pip install Pillow")
+
+    add("private/ 目录", PRIVATE_DIR.is_dir(), "缺失时复制 private.example 为 private")
+    for name in ("secrets.json", "paths.md"):
+        add(f"private/{name}", (PRIVATE_DIR / name).exists())
+
+    for name, entry in sorted((secrets or {}).items()):
+        if name.startswith("_") or not isinstance(entry, dict):
+            continue  # 跳过 _comment 等说明键
+        vals = entry if isinstance(entry, dict) else {}
+        ok = all(str(vals.get(k, "<")).strip() and not str(vals.get(k, "<")).strip().startswith("<")
+                 for k in ("base_url", "api_key"))
+        add(f"secrets 条目 {name}", ok, "已配置" if ok else "仍是占位值，对应后端会自动跳过")
+
+    paths_md = PRIVATE_DIR / "paths.md"
+    if paths_md.exists():
+        unfilled = [m.group(1) for m in re.finditer(r"^\| `([A-Z0-9_]+)` \|.*\|.*<.*\|\s*$",
+                                                    paths_md.read_text(encoding="utf-8"), re.M)]
+        add("private/paths.md 未填值条目", True, "、".join(unfilled) or "无")
+
+    sub = ROOT / "skills/dst-modding/mod-skills/SKILL-CATALOG.md"
+    add("mod-skills 子模块", sub.exists(), "缺失时运行 git submodule update --init")
+
+    for row in cmd_list(secrets):
+        ok = any(b["available"] for b in row["backends"])
+        note = "；".join(f"{b['type']}：{b['reason'] or '可用'}" for b in row["backends"])
+        add(f"代理 {row['agent']}", ok, note)
+    return rows
+
 def run_agent(agent, ctx, only_backend=None):
     attempts = []
+    if only_backend and not any(b.get("type") == only_backend for b in agent.get("backends", [])):
+        if only_backend in BACKENDS:
+            reason = f"代理 {ctx.agent} 未配置后端 {only_backend}（可用：{', '.join(b['type'] for b in agent.get('backends', []))}）"
+        else:
+            reason = f"未知后端类型 {only_backend}（可用：{', '.join(BACKENDS)}）"
+        return {"ok": False, "agent": ctx.agent,
+                "attempts": [{"backend": only_backend, "status": "skipped", "reason": reason}]}
     for b in agent.get("backends", []):
         btype = b["type"]
         if only_backend and btype != only_backend:
@@ -93,9 +143,13 @@ def main():
     p.add_argument("--timeout", type=int, help="单个后端超时秒数，默认取 agent.json 的 timeout 或 600")
     p.add_argument("--dry-run", action="store_true", help="只打印将要执行的命令/请求，不真正调用")
     p.add_argument("--list", action="store_true", help="列出所有子代理及后端可用情况")
+    p.add_argument("--doctor", action="store_true", help="环境自检：Python、Pillow、private 配置、子模块和后端")
     args = p.parse_args()
 
     secrets = load_secrets()
+    if args.doctor:
+        print(json.dumps(cmd_doctor(secrets), ensure_ascii=False, indent=2))
+        return
     if args.list or not args.agent:
         print(json.dumps(cmd_list(secrets), ensure_ascii=False, indent=2))
         return

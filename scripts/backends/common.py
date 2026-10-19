@@ -35,10 +35,17 @@ class Context:
     secrets: dict = field(default_factory=dict)
 
     def run_dir(self, backend):
-        """每次调用一个独立的临时工作目录，放 last_message.txt 等中间文件。"""
+        """每次调用一个独立的临时工作目录，放 last_message.txt 等中间文件。
+        目录名带时间戳，按名字排序即按时间排序；超过保留数量的旧目录自动删除。"""
         stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        d = OUTPUT_DIR / "_runs" / f"{stamp}_{self.agent}_{backend}"
+        runs = OUTPUT_DIR / "_runs"
+        d = runs / f"{stamp}_{self.agent}_{backend}"
         d.mkdir(parents=True, exist_ok=True)
+        keep = int(os.environ.get("ALTWF_KEEP_RUNS", "30"))
+        if keep >= 0:
+            old = sorted(p for p in runs.iterdir() if p.is_dir())
+            for p in (old if keep == 0 else old[:-keep]):
+                shutil.rmtree(p, ignore_errors=True)
         return d
 
 
