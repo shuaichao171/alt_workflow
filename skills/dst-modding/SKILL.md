@@ -22,6 +22,13 @@
 - 不要读取与当前任务无关的其他 Skill。后续任务的内容发生变化时，重新判断需要使用的 Skill。
 - 部分 Skill 里写的源码目录 `D:\steam\...\data\scripts` 是作者本机的默认值，以 `DST_DATA_DIR` 的实际值为准。
 
+## 无头测试
+
+- 用户要求《饥荒联机版》无头测试、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。
+- 修改影响引擎运行的逻辑（如组件、动作、AI、状态机、碰撞、存档、世界生成）时，按该技能选择相关无头用例；执行前完整阅读其通用流程。纯文档、静态资源修改按实际需要验证。
+- 通用流程见 [mod-skills/dst-dedicated-server-testing/references/headless-workflow.md](mod-skills/dst-dedicated-server-testing/references/headless-workflow.md)，覆盖隔离环境、场景驱动、结果判定、修复复测与进程清理。具体用例由当前模组定义。
+- 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版需另查其可用运行方式，不直接套用联机版专服命令。
+
 ## 饥荒动作制作
 
 - 动作制作流程：[animation/README.md](animation/README.md)，先读其中的 [00-注意事项](animation/00-注意事项.md)。
