@@ -30,6 +30,9 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
    python scripts/call_agent.py --doctor   # 更全面的环境自检（Pillow、private 配置、子模块）
    ```
 
+4. 需要连服务器时（可选）：在 `private/secrets.json` 填好服务器条目，先跑只读自检 `python scripts/server.py doctor`；
+   方法与铁律见 `skills/server-ops/SKILL.md`（部署更新、数据迁移、备份回滚、验证清单、Nginx/宝塔）。
+
 ## 接入其他项目
 
 工作流内部全部使用相对路径，所以整个文件夹可以放在任何位置。让某个项目使用它，在该项目的 `AGENTS.md`（或 `CLAUDE.md`）里加一句：
@@ -45,6 +48,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 - **技能**：复制 `skills/_template/`，在 `skills/INDEX.md` 登记。
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
 - 脚本只依赖 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
+- **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
 
 ## 公开前检查
 

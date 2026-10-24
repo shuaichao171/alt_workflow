@@ -9,6 +9,7 @@
 2. **选择技能**：根据当前任务内容，在 [skills/INDEX.md](skills/INDEX.md) 的路由表里挑选**最少数量**的相关技能；动手前完整读取每个选中技能的 `SKILL.md`。与当前任务无关的技能不要读。
 3. **按需调用子代理**：任务需要自己做不到或做不好的能力（生图、识图……）时，查 [agents/INDEX.md](agents/INDEX.md)，通过 `python scripts/call_agent.py <代理名> ...` 调用。
 4. **本机环境信息**：需要本机软件路径、游戏目录等信息时，查 [private/paths.md](private/paths.md)。该文件不存在时，参照 [private.example/](private.example/) 提示用户补充，不要自己猜测路径。
+   - 涉及**远程服务器**（部署、更新、数据迁移、备份回滚、Nginx/宝塔、巡检排障）时：连接凭据在 [private/secrets.json](private/secrets.json) 的服务器条目里（由脚本读取，不要读值或复述），方法与铁律读 [skills/server-ops/SKILL.md](skills/server-ops/SKILL.md)。
 5. **任务内容变化时**：重新执行第 2、3 步，重新判断需要的技能和子代理。
 
 ## 目录结构

@@ -17,6 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SENSITIVE_DIRS = ("private/", "output/")
+# 比对样本取的字段名：这些字段的值绝不允许出现在已跟踪文件里
+SECRET_KEYS = ("api_key", "password", "token", "access_token", "secret", "session", "key")
 
 
 def git(*args):
@@ -25,15 +27,20 @@ def git(*args):
 
 
 def real_secrets():
-    """读取 private/secrets.json 里已填写的 api_key 值（只在本脚本内使用，不输出）。"""
+    """读取 private/secrets.json 里已填写的敏感值（只在本脚本内使用，不输出）。"""
     path = ROOT / "private" / "secrets.json"
     if not path.exists():
         return []
     values = []
     for entry in json.loads(path.read_text(encoding="utf-8")).values():
-        if isinstance(entry, dict):
-            v = str(entry.get("api_key", "")).strip()
-            if v and not v.startswith("<"):
+        if not isinstance(entry, dict):
+            continue
+        for key, raw in entry.items():
+            if key not in SECRET_KEYS:
+                continue
+            v = str(raw).strip()
+            # 过短的值（如 user=root、port=22）不作比对样本，避免误报
+            if v and not v.startswith("<") and len(v) >= 6:
                 values.append(v)
     return values
 
@@ -63,7 +70,7 @@ def main():
         for name, entry in json.loads(tpl.read_text(encoding="utf-8")).items():
             if name.startswith("_") or not isinstance(entry, dict):
                 continue
-            for k in ("api_key", "base_url"):
+            for k in ("api_key", "base_url", "password", "ssh_alias"):
                 v = str(entry.get(k, "")).strip()
                 if v and not v.startswith("<"):
                     problems.append(f"private.example/secrets.json 的 {name}.{k} 不是占位值：{v[:4]}***")

@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | 生成/编辑位图 | 需要生成、修改图片，制作贴图、图标、插画、透明素材 | [image-gen/SKILL.md](image-gen/SKILL.md) |
 | 《饥荒》开发 | 制作《饥荒》/《饥荒联机版》相关内容：模组、动作、贴图、调试日志、无头测试（内含 48 个模组专项技能与动作制作流程） | [dst-modding/SKILL.md](dst-modding/SKILL.md) |
+| 服务器运维 | 在远程服务器上部署/更新服务、迁移容器与账号数据、备份回滚、改 Nginx/宝塔配置、只读巡检与排障 | [server-ops/SKILL.md](server-ops/SKILL.md) |
 
 > 新增技能：复制 [_template/](_template/) 为新目录，填写 `SKILL.md`，然后在上表加一行。
 > 「何时使用」写清触发条件，AI 只靠这一列判断要不要读该技能。
