@@ -30,6 +30,10 @@
 - 不要读取与当前任务无关的其他 Skill。后续任务的内容发生变化时，重新判断需要使用的 Skill。
 - 部分 Skill 里写的源码目录 `D:\steam\...\data\scripts` 是作者本机的默认值，以 `DST_DATA_DIR` 的实际值为准。
 
+## 工坊上传
+
+- 上传、更新或新建模组工坊物品时，使用 [../steam-workshop-upload/SKILL.md](../steam-workshop-upload/SKILL.md)：支持按名称查询本人列表（匹配 ID 必须经用户明确确认）、AI 选择文件、离线清单和快照、单机/联机上传及结果回查。仅开发模组时无需加载或执行上传技能。
+
 ## 无头测试
 
 - 用户要求《饥荒联机版》无头测试、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。

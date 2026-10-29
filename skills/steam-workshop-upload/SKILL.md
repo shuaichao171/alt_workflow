@@ -1,0 +1,68 @@
+---
+name: steam-workshop-upload
+description: 上传、更新或新建《饥荒》和《饥荒联机版》工坊模组；读取本人已发布列表按名称寻找 ID，经用户明确确认后使用匹配目标。
+---
+
+# 饥荒工坊上传
+
+使用精简命令行核心；无需打开上传器界面。上传经验及两种游戏的区别见 [references/upload-notes.md](references/upload-notes.md)，任务 JSON 字段见 [references/job-format.md](references/job-format.md)。
+
+## 环境与入口
+
+- Windows、.NET 10 SDK、x86 .NET 10 运行时；Steam 已启动并在线登录有发布权限的账号。
+- 技能已包含 Klei Mod Tools 配套的 **32 位** [steam_api.dll](assets/win-x86/steam_api.dll)，脚本默认自动复制使用，无需完整上传器或外部 DLL 路径配置。特殊情况可用 `-SteamApiDll` 覆盖。不要读取 Steam/CLI 登录凭据。
+- 入口：[../../scripts/workshop.ps1](../../scripts/workshop.ps1)。源码位于本技能 `scripts/`，首次使用自动编译到任务 JSON 所在目录的 `_workshop_tool/`；构建与运行产物均放在目标项目内。
+- `plan`、`check` 完全离线；`list`、`inspect` 只读工坊；`upload` 会发布。当前任务只要求整理或准备时，做到计划检查即可。用户明确指定了 ID/链接并授权上传时，准备完成后直接执行；**通过列表和名称找到的 ID 必须先按下节取得明确确认，即使用户此前已说“帮我上传”也不能省略。**
+
+## 不记得 ID：先查询，再确认
+
+1. 在目标项目的 `_ai_work/workshop/query.json` 写 `{"app_id":322330,"search_name":"模组名字或关键词"}`（单机改为 `219740`），运行 `& "$workflowRoot/scripts/workshop.ps1" list $queryPath`。不需要 workshop_id、模组目录或上传配置；空 search_name 返回全部本人已发布物品。未知游戏时可分别只读查询两种游戏。
+2. 仅在 list 退出码为 `0` 时读取本次 `query.list.json`；失败时不复用旧结果。列表仅包含当前登录账号在指定游戏下、由 Klei 工具创建的已发布物品；按 ID 去重，提供中英文名称、版本、更新时间、可见性和链接。`matches` 是名称包含匹配的候选，`items` 保留完整列表供 AI 比对别名和项目内容。不得把名称相似度、唯一匹配或同名当作确认；未找到时继续核查或向用户说明，不自动创建新物品。
+3. 展示候选的**游戏、名称、ID、工坊链接**，有必要时补充版本/更新时间与推荐理由。向用户明确询问使用哪个目标；即使仅一个候选或名称完全相同，也必须询问。示例：“找到联机版《名称》，ID 123，链接……。确认把当前模组上传到这个物品吗？”
+4. **没得到确切答复，不执行 upload。** 无回复、超时、“可能是”“应该吧”“再看看”等含糊答复均不能视为同意；多个候选时，笼统“好的”但无法确定对象也不算。可以继续文件选择、离线 plan/check 和只读 inspect，保持确认待处理。用户明确选定候选（如“就第二个”）或在单一明确目标下回答“确认/是的”后，才能继续已授权的上传任务。
+5. 所有列表推断的目标都写 `target_source="list"`。取得本次任务的真实回复后才填写 `target_confirmation`：`decision="confirmed"`、相同的 app_id / workshop_id、`user_reply` 保存用户答复原文。不得自行编造回复、把推断目标改成 user、自动填 confirmed，或复用旧任务的确认。确认后仍保留 list 来源。游戏或 ID 改变时原确认失效，必须重新询问。
+
+确认格式及可运行的查询配置见 [references/job-format.md](references/job-format.md)。退出码 `4` 表示等待目标确认；`force` 不跳过它。程序能检查记录是否完整且绑定同一游戏/ID，答复是否明确以及是否真实来自用户仍由 AI 按上述规则判断。
+
+## 选择目标和文件
+
+1. 识别模组根目录（含 `modinfo.lua`），确认游戏：联机 `322330`，单机 `219740`。用户直接给出 ID/链接时使用指定目标；否则先按上节读列表并取得明确确认，项目旧配置只能帮助比对候选。不要仅凭目录名推测 ID，也不要把“更新”变成“新建”。
+2. 查看项目文件和资源引用，按实际运行需要决定上传内容。用 `include` / `exclude` 表达选择，也可以在 `include` 中逐项列出相对文件路径。保留所需 Lua、动画 ZIP、TEX/XML、音效、字体、原生库等；`modmain.lua`、`modworldgenmain.lua` 是否需要取决于模组类型。
+3. 源工程、备份、日志、测试、说明、构建输出是否发布，由项目和用户要求决定；不要用扩展名黑名单误删 DLL、EXE、ZIP 或运行时资源。原始图片/音频确有运行需求时，设置 `upload_redundant_files=true` 并用文件规则控制范围。点开头的名称、链接及任务产物目录会跳过。
+4. 更新前读取本地 `version`，必要时用 `inspect` 查看工坊版本和 Tags。普通文件更新需有不同的版本；版本相同或旧版本未知时，仅在用户已允许覆盖/强制上传的情况下使用 `force=true`。不自动修改版本号凑过检查。
+
+## 执行
+
+在 `<目标项目>/_ai_work/workshop/job.json` 写任务。最小更新示例（此处 `source_directory` 相对于 JSON 所在目录）：
+
+```json
+{
+  "operation": "update",
+  "app_id": 322330,
+  "workshop_id": "替换为已确认的工坊ID",
+  "source_directory": "../..",
+  "include": ["**"],
+  "exclude": ["docs/**", "tests/**", "**/*.bak"],
+  "change_note": "本次实际变更说明"
+}
+```
+
+示例 `exclude` 需按项目调整。更新默认保留工坊标题、简介、封面和可见性；同步版本时合并保留已有普通 Tags。需要更改这些字段或创建新物品时，先读 [job-format.md](references/job-format.md)。
+
+下列 `$workflowRoot` 为工作流根目录，`$jobPath` 为目标项目的任务 JSON 绝对路径；命令可从任意目录执行：
+
+```powershell
+& "$workflowRoot/scripts/workshop.ps1" plan $jobPath
+& "$workflowRoot/scripts/workshop.ps1" check $jobPath
+& "$workflowRoot/scripts/workshop.ps1" inspect $jobPath  # 需要查询已有物品时
+& "$workflowRoot/scripts/workshop.ps1" upload $jobPath   # 已授权发布，且列表目标已明确确认
+```
+
+- 检查 `job.plan.json` 中的实际文件、跳过原因、版本，以及联机版生成的 `mod.manifest`。发现选择错误就调整配置重新 `plan`。选中文件、配置、简介文件或封面变化后必须重新 `plan`。
+- `upload` 校验清单和快照，读取当前工坊状态后再次校验，然后仅上传计划中的内容。命令无交互提示；错误通过非零退出码返回。
+- 新建任务的 `operation=create`、`workshop_id="0"`，必须同时提供文件、封面、标题简介。创建得到的 ID 会立即写入回执；后续使用该 ID 更新，不再次创建。
+
+## 结果与重试
+
+- 只有退出码 `0` 且 `job.result.json` 的 `status=verified`，才能报告“上传并确认成功”。回执还包含 ID、链接和版本；详细日志在 `job.upload.log`。
+- `submitted_unverified`、`failed_or_uncertain`、`created_pending` 或协议提示不等于未提交。保留回执，先 `inspect` 或检查工坊页面。脚本只重试查询，不自动重新发布；创建任务有回执时会阻止重复创建。

@@ -15,6 +15,24 @@ AGENTS.md（启动入口）
 
 AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md` 选技能 → 需要额外能力时查 `agents/INDEX.md` 调用子代理 → 需要本机路径时查 `private/paths.md`。
 
+## 产物落位（重要）
+
+工作流目录只放 **规则、技能、子代理**；任务的产物不要落在工作流里。
+
+- 任务产物（脚本、报告、中间文件、生成物）一律放在**被操作的目标项目目录**内，用一个不会与项目本体混淆的子目录承载：
+
+  ```
+  <目标项目>/
+   └─ _ai_work/          # 下划线开头，明确不是项目源码/配置
+       ├─ README.md      # 任务报告
+       ├─ *.py           # 任务脚本
+       └─ out/           # 中间与最终产物
+  ```
+
+- `output/` 只用于**工作流自身调用的子代理**（生图、识图等）产生的临时输出；它不是任务工作区，任务结束时清理自己产生的文件。
+- 不能确定产物该放哪里时，先问用户，不要默认丢进工作流目录。
+- 需要跨任务复用一个固定工作目录时，把路径登记到 `private/paths.md`，公开文件里用占位名引用。
+
 ## 快速开始
 
 1. 复制模板并填写自己的配置：
@@ -47,8 +65,9 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 
 - **技能**：复制 `skills/_template/`，在 `skills/INDEX.md` 登记。
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
-- 脚本只依赖 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
+- Python 脚本使用 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
 - **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
+- **饥荒工坊上传**：技能在 `skills/steam-workshop-upload/`，配套 `scripts/workshop.ps1`；包含精简 C# 核心和 Klei 的 32 位 `steam_api.dll`，支持按名字查本人已发布列表（匹配出的 ID 必须获得用户明确确认）、AI 选择文件、离线清单、单机/联机上传和结果回查。需要 .NET 10 SDK 与 x86 运行时，不需要完整上传器。任务配置、快照和构建产物放在目标项目的 `_ai_work/workshop/`。
 
 ## 公开前检查
 

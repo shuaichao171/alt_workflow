@@ -24,10 +24,11 @@
 | `scripts/` | 子代理统一调用脚本及各后端实现 | 公开 |
 | `private/` | **敏感内容**：密钥、本机路径等，已被 `.gitignore` 忽略 | 不公开 |
 | `private.example/` | `private/` 的模板，供他人复制后自行填写 | 公开 |
-| `output/` | 子代理默认输出目录，已被忽略 | 不公开 |
+| `output/` | 子代理产生的**临时**输出（生图/识图等），已被忽略；**不是任务工作区** | 不公开 |
 
 ## 维护约定
 
 - 新增技能：复制 [skills/_template/](skills/_template/)，并在 [skills/INDEX.md](skills/INDEX.md) 登记。
 - 新增子代理：复制 [agents/_template/](agents/_template/)，并在 [agents/INDEX.md](agents/INDEX.md) 登记。
 - 密钥、账号、本机绝对路径一律只写进 `private/`；公开文件里只用占位名引用（如 `DST_DATA_DIR`），具体值在 [private/paths.md](private/paths.md) 中查找。
+- **任务产物（脚本、报告、中间文件）放在被操作的目标项目目录内**（惯例用 `<目标项目>/_ai_work/` 这类下划线子目录），不要写进工作流目录；`output/` 只放子代理临时输出。具体见 [README.md](README.md) 的「产物落位」一节。

@@ -30,15 +30,22 @@
 | 动作 | 接口 |
 | --- | --- |
 | 账号列表 / 汇总 | `GET /admin/api/accounts` |
-| **加账号（服务在跑时必须用这个）** | `POST /admin/api/accounts` `{name,session,userid,phone,nickname}` |
+| **加账号 · 已有 session** | `POST /admin/api/accounts` `{name,session,userid,phone,nickname}` |
 | 校验单个账号 | `POST /admin/api/accounts/<id>/check` |
 | 刷新单个/全部积分 | `POST /admin/api/accounts/<id>/points`、`POST /admin/api/points/refresh` |
 | 删除账号 / 启停 | `DELETE /admin/api/accounts/<id>`、`PATCH /admin/api/accounts/<id>` |
 | 建 / 删下游密钥 | `POST /admin/api/keys`、`DELETE /admin/api/keys/<id>` |
 | 刷新模型目录 | `POST /admin/api/models/refresh` |
-| 短信登录（会真发短信） | `POST /admin/api/login/send-code` → `POST /admin/api/login/verify` |
+| **加账号 · 手机号发码（推荐，自动建号）** | `POST /admin/api/login/send-code {phone}` → 用户报码 → `POST /admin/api/login/verify {loginId,code}`（verify 成功即落库，无需再调 `accounts`） |
 
 鉴权：设了管理密码就必须带 `Authorization: Bearer <管理密码>`；未设且本机访问则放行。
+
+## 加号页 /add（2026-10-24 上线）
+
+- `https://loomy.shuaichao.xyz/add`（域名 HTTPS，用户决策不走 IP 直连：实配 vhost 无 IP server 块，8788 被 UFW 拦，见 07 文档）
+- 移动端四步流程：管理密码 → 手机号发码 → 验证码 → 成功（倒计时/重发/换号/再添一个），大号触控目标、数字键盘。
+- 页面 HTML 公开，但发码/验证仍走 `/admin/api/login/*` 管理鉴权（无凭据 401 已实测）；同浏览器 24h 内免重输密码（HMAC Cookie）。
+- 代码位置：`src/ui/add.html` + `src/routes/admin.js` 的 `serveAddUi` + `src/server.js` `/add` 路由。
 
 ## 更新流程
 
