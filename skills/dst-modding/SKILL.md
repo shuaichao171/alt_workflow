@@ -13,6 +13,14 @@
 
 - **《饥荒联机版》客户端日志**：`DST_CLIENT_LOG`
 - **主机日志和洞穴日志**：与客户端日志位于同级目录。
+- **《饥荒》单机版日志**：`DS_LOG`。
+
+## 联机版 → 单机版移植
+
+- 把《饥荒联机版》的角色、技能树、物品、界面、音效移植到《饥荒》单机版（Base / RoG / SW / Hamlet），或修复、审查、测试已有的单机移植模组时，使用 [ds-porting/README.md](ds-porting/README.md)，按其中的文件分工只读当前需要的部分。
+- 写或审查移植代码前必读其中的 [02-API差异速查](ds-porting/02-API差异速查.md)；启动单机游戏、操作存档前必读 [06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
+- mod-skills 以联机版源码为基线，移植时只用来理解联机版一侧的原始设计，单机一侧的写法以 ds-porting 和单机源码为准。
+- 每完成一个移植或修完一个新坑，按 [08-案例索引](ds-porting/08-案例索引.md) 末尾的说明把经验补回 ds-porting。
 
 ## 模组开发
 
@@ -27,7 +35,7 @@
 - 用户要求《饥荒联机版》无头测试、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。
 - 修改影响引擎运行的逻辑（如组件、动作、AI、状态机、碰撞、存档、世界生成）时，按该技能选择相关无头用例；执行前完整阅读其通用流程。纯文档、静态资源修改按实际需要验证。
 - 通用流程见 [mod-skills/dst-dedicated-server-testing/references/headless-workflow.md](mod-skills/dst-dedicated-server-testing/references/headless-workflow.md)，覆盖隔离环境、场景驱动、结果判定、修复复测与进程清理。具体用例由当前模组定义。
-- 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版需另查其可用运行方式，不直接套用联机版专服命令。
+- 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版没有专服，不套用联机版专服命令，改用游戏内自动测试模组，见 [ds-porting/06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
 
 ## 饥荒动作制作
 
@@ -42,7 +50,7 @@
   | `DST_GAME_HOME` | `DST_GAME_HOME`（同名条目） |
   | `DST_SCML_ANALYZER` | `DST_SCML_ANALYZER`（同名条目） |
 
-> `mod-skills/` 是独立的 Git 仓库（子模块），在其目录里提交、推送；`animation/` 是本工作流的普通文件。
+> `mod-skills/` 是独立的 Git 仓库（子模块），在其目录里提交、推送；`animation/` 和 `ds-porting/` 是本工作流的普通文件。
 
 ## 贴图
 

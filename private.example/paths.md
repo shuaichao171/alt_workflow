@@ -23,6 +23,9 @@
 | `DST_CLIENT_LOG` | 《饥荒联机版》客户端日志 | `<文档>\Klei\DoNotStarveTogether\client_log.txt` |
 | `DST_GAME_HOME` | 《饥荒联机版》安装根目录（`DST_DATA_DIR` 的上两级） | `<Steam>\steamapps\common\Don't Starve Together` |
 | `DST_SCML_ANALYZER` | 已审核的 SCML 分析器脚本（animation/ 流程用） | `<脚本路径>` |
+| `DS_LOG` | 《饥荒》单机版日志 | `<文档>\Klei\DoNotStarve\log.txt` |
+| `DS_STEAM_CLOUD_DIR` | 《饥荒》单机版 Steam 云存档目录 | `<Steam>\userdata\<账号 ID>\219740` |
+| `DS_PORT_KIT_DIR` | 早期移植技能包（port-tools.py、DST Mod Tool、详细工具命令；ds-porting/ 流程引用，可选） | `<目录>` |
 
 ## 服务器（VPS）
 
