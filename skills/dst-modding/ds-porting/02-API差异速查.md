@@ -111,7 +111,12 @@
 - **受击打断**：单机受击处理忽略 `nointerrupt` 标签，不能被打断的状态改用 `not_hit_stunned`（旺达回溯、跳门、复活）。
 - **挂在玩家身上的特效**：单机不把父实体朝向传给子实体，特效要每帧复制玩家朝向，否则朝向不同时左右反转。
 - 联机版独有的动画（`useitem_pre/pst`、`death_reverse` 等）在单机 bank 里不存在：用实际 bank 列表核对，缺的从联机版导出或换现有动画。
-- 动画事件缺失时，在 `timeout` / `onupdate` 里补逻辑兜底。
+- 动画事件缺失时，在 `timeout` / `onupdate` 里补逻辑兑底。注意：纯 `onupdate` 状态在单机调度器下可能只被唤醒几次且 `dt=0`；逐帧效果优先用 timeline `TimeEvent`（薇格弗德 2026-10-29）。
+- **单机 instant 动作绕过 SG**：`Action.instant=true` 时 `EntityScript:PushBufferedAction` 直接 `Do()`，不查 ActionHandler，动画状态不会进。要动画的动作用非 instant（无 target/pos 时会 `sg:StartAction` 走 ActionHandler）；必须 instant 的在 action fn 里显式 `GoToState`（薇格弗德 2026-10-29）。
+- **状态图实例无 `HasState` / `states`**：单机 `StateGraphInstance` 上查状态要用 `inst.sg.sg.states[name] ~= nil`（模板的 `.sg` 字段才是状态表）；`GoToState` 对非法名字自会打印 INVALID STATE（薇格弗德 2026-10-29）。
+- **玩家逐帧位移**：玩家实体的电机速度被 locomotor 每帧覆写，`Physics:SetMotorVel` 无效；冲锋/突进用 timeline 事件分帧 `Transform:SetPosition` 步进（薇格弗德 2026-10-29）。
+- **动画按 bank 名跨 zip 合并**：把 DST 玩家动画（sing/parry/个性待机等）以同名 bank 导出成 mod zip 后，单机玩家 `PlayAnimation` 能直接命中，无需切 bank；角色专属符号用 `AddOverrideBuild`（薇格弗德 2026-10-29）。
+- **modimport 顺序**：`AddStategraphActionHandler(ACTIONS.X, ...)` 在 `ACTIONS.X` 为 nil 时构造会让 SG 构造函数报 `table index is nil`——动作定义文件的 modimport 必须在 SG 文件之前（薇格弗德 2026-10-29）。
 - 单机的 `SGwilson` 某些动作只认特定物品标签（如 `PLAY` 只认笛子和号角）：用 `AddStategraphPostInit` 包装路由。
 - 地面标记类特效要设置排序高于地皮，否则画在地面下面看不见。
 - `customidleanim` 接入 `funnyidle` 时注意温度、饥饿、理智、中毒（哈姆雷特 `poisonable`）条件。
