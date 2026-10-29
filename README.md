@@ -67,7 +67,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
 - Python 脚本使用 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
 - **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
-- **饥荒工坊上传**：技能在 `skills/steam-workshop-upload/`，配套 `scripts/workshop.ps1`；包含精简 C# 核心和 Klei 的 32 位 `steam_api.dll`，支持按名字查本人已发布列表（匹配出的 ID 必须获得用户明确确认）、AI 选择文件、离线清单、单机/联机上传和结果回查。需要 .NET 10 SDK 与 x86 运行时，不需要完整上传器。任务配置、快照和构建产物放在目标项目的 `_ai_work/workshop/`。
+- **饥荒工坊上传**：技能在 `skills/steam-workshop-upload/`，配套 `scripts/workshop.ps1`；包含精简 C# 核心和 Klei 的 32 位 `steam_api.dll`，支持按名字查本人已发布列表（匹配出的 ID 必须获得用户明确确认）、AI 选择文件、离线清单、单机/联机上传和结果回查。**只有用户在本次任务中明确要求上传才会提交；开发、打包和确认 ID 均不授权上传。** 规则见 [rules/40-workshop-upload.md](rules/40-workshop-upload.md)，入口检查独立上传授权记录，缺失时返回 `5`，force 不绕过。需要 .NET 10 SDK 与 x86 运行时，不需要完整上传器。任务配置、快照和构建产物放在目标项目的 `_ai_work/workshop/`。
 
 ## 公开前检查
 

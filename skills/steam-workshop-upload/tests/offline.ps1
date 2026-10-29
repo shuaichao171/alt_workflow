@@ -30,6 +30,19 @@ function Run-Cli([string]$Command, [int]$ExpectedExit = 0) {
     $output | Set-Content -LiteralPath (Join-Path $testRoot ($Command + '.log')) -Encoding UTF8
 }
 function Read-Plan { Get-Content -LiteralPath ([IO.Path]::ChangeExtension($configPath, '.plan.json')) -Raw -Encoding UTF8 | ConvertFrom-Json }
+function Assert-UploadNotAuthorized([string]$Scenario) {
+    Save-Job
+    Run-Cli 'upload' 5
+    Assert-That ((Get-Content -LiteralPath (Join-Path $testRoot 'upload.log') -Raw -Encoding UTF8) -match '等待用户明确要求上传') ($Scenario + ': upload must stop at the authorization guard.')
+}
+function New-FixtureAuthorization {
+    # Synthetic data for isolated offline tests only. Every upload in this suite
+    # must stop at an authorization/target guard or failed plan before Steam.
+    return @{
+        decision = 'authorized'; operation = 'update'; app_id = 322330; workshop_id = '1'
+        user_request = 'Synthetic offline fixture: upload DST item 1. Never submit to Steam.'
+    }
+}
 
 Write-Fixture 'modinfo.lua' "-- version = 'wrong'`nconfiguration_options = {{version = 'also-wrong'}}`nversion = '1.1'`nname = '测试'`n"
 Write-Fixture 'modmain.lua' '-- main'
@@ -91,6 +104,54 @@ try {
     Assert-That ($manifest.BaseStream.Position -eq $manifest.BaseStream.Length) 'Unexpected manifest bytes.'
 } finally { $manifest.Dispose() }
 Run-Cli 'check'
+
+Assert-UploadNotAuthorized 'An explicit ID with no upload instruction'
+$script:job.force = $true
+Assert-UploadNotAuthorized 'force cannot grant upload permission'
+$script:job.target_source = 'list'
+$script:job.target_confirmation = @{ decision = 'confirmed'; app_id = 322330; workshop_id = '1'; user_reply = 'ID 没错' }
+Assert-UploadNotAuthorized 'Confirming a list ID does not authorize upload'
+$script:job.Remove('target_source')
+$script:job.Remove('target_confirmation')
+$script:job.Remove('force')
+$script:job.update_content = $false
+$script:job.update_metadata = $true
+$script:job.title = 'Offline fixture'
+Assert-UploadNotAuthorized 'Metadata-only updates require upload authorization'
+$script:job.operation = 'create'
+$script:job.workshop_id = '0'
+$script:job.update_content = $true
+$script:job.update_preview = $true
+$script:job.preview_file = '../../filtered.png'
+Assert-UploadNotAuthorized 'Creating a new item requires upload authorization'
+$script:job.operation = 'update'
+$script:job.workshop_id = '1'
+$script:job.Remove('update_content')
+$script:job.Remove('update_metadata')
+$script:job.Remove('update_preview')
+$script:job.Remove('preview_file')
+$script:job.Remove('title')
+$script:job.upload_authorization = @{}
+Assert-UploadNotAuthorized 'Empty authorization defaults to pending'
+foreach ($invalidField in @('decision', 'operation', 'app_id', 'workshop_id', 'user_request')) {
+    $script:job.upload_authorization = New-FixtureAuthorization
+    $script:job.upload_authorization[$invalidField] = switch ($invalidField) {
+        'decision' { 'pending' }
+        'operation' { 'create' }
+        'app_id' { 219740 }
+        'workshop_id' { '2' }
+        'user_request' { ' ' }
+    }
+    Assert-UploadNotAuthorized ('Invalid authorization field ' + $invalidField)
+}
+Assert-That (-not (Test-Path -LiteralPath ([IO.Path]::ChangeExtension($configPath, '.result.json')))) 'Unauthorized attempts must not create a submission receipt.'
+Assert-That (-not (Test-Path -LiteralPath ([IO.Path]::ChangeExtension($configPath, '.upload.log')))) 'Unauthorized attempts must not reach the upload writer.'
+$script:job.upload_authorization = New-FixtureAuthorization
+Save-Job
+# A complete authorization passes its guard; the changed config deliberately
+# leaves the plan stale, proving the positive path without touching Steam.
+Run-Cli 'upload' 1
+Assert-That ((Get-Content -LiteralPath (Join-Path $testRoot 'upload.log') -Raw -Encoding UTF8) -match '任务配置已变化') 'Complete upload authorization must reach offline plan validation.'
 
 $script:job.target_source = 'list'
 Save-Job

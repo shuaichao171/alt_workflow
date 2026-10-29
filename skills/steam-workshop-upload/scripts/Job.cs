@@ -10,6 +10,7 @@ internal sealed class UploadJob
     public string Operation { get; set; } = "update";
     public uint AppId { get; set; } = 322330;
     public string WorkshopId { get; set; } = "0";
+    public UploadAuthorization UploadAuthorization { get; set; }
     public string TargetSource { get; set; } = "user";
     public TargetConfirmation TargetConfirmation { get; set; }
     public string SourceDirectory { get; set; } = "";
@@ -32,6 +33,17 @@ internal sealed class UploadJob
     public int? Visibility { get; set; }
     public bool Force { get; set; }
 }
+
+internal sealed class UploadAuthorization
+{
+    public string Decision { get; set; } = "pending";
+    public string Operation { get; set; } = "";
+    public uint AppId { get; set; }
+    public string WorkshopId { get; set; } = "";
+    public string UserRequest { get; set; } = "";
+}
+
+internal sealed class UploadAuthorizationRequired(string message) : Exception(message);
 
 internal sealed class TargetConfirmation
 {
@@ -117,6 +129,12 @@ internal sealed class JobContext
     }
 
     internal string Resolve(string path) => Path.GetFullPath(Path.Combine(JobDirectory, path));
+    internal void RequireUploadAuthorization()
+    {
+        UploadAuthorization authorization = Job.UploadAuthorization;
+        if (authorization == null || authorization.Decision != "authorized" || authorization.Operation != Job.Operation || authorization.AppId != Job.AppId || authorization.WorkshopId != Job.WorkshopId || string.IsNullOrWhiteSpace(authorization.UserRequest))
+            throw new UploadAuthorizationRequired("必须先收到用户在本次任务中明确要求上传/发布到创意工坊的指令。缺少匹配的 upload_authorization；确认 ID 不等于授权上传，force 不能跳过。");
+    }
     internal void RequireConfirmedTarget()
     {
         if (Job.TargetSource != "list") return;

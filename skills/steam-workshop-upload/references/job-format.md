@@ -7,6 +7,7 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 | `operation` | `update` | `update` 更新；`create` 新建 |
 | `app_id` | `322330` | 联机 `322330`，单机 `219740` |
 | `workshop_id` | `"0"` | 更新必须填写非零 ID；新建必须为 `"0"` |
+| `upload_authorization` | 未设置 | 所有 upload（含用户直接给 ID、新建和仅改元数据）均需本次任务的明确上传指令记录，见下文；只读和离线命令不需要 |
 | `target_source` | `user` | `user` 仅用于用户直接指定的 ID/链接；按名称从列表推断的目标必须填 `list` |
 | `target_confirmation` | 未设置 | list 目标执行 upload 前必须提供本次任务的用户确认，格式见下文；plan/check/inspect 可先进行 |
 | `source_directory` | 必填 | 含 modinfo.lua 的模组根目录 |
@@ -25,7 +26,29 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 | `version` / `version_compatible` | 从 modinfo 读取 | 动态值不能静态读取时显式提供；version 不得与字面量冲突 |
 | `change_note` | `""` | 联机更新说明；单机旧接口忽略 |
 | `visibility` | 更新时保留；新建 `2` | `0` 公开、`1` 好友、`2` 私有、`3` 不列出 |
-| `force` | `false` | 跳过普通文件更新的“版本相同/旧版本未知”检查；不跳过清单校验或封面大小检查 |
+| `force` | `false` | 跳过普通文件更新的“版本相同/旧版本未知”检查；不跳过上传授权、目标确认、清单校验或封面大小检查 |
+
+## 上传授权记录
+
+**仅在本次任务已收到用户明确要求上传、发布或更新创意工坊物品的真实指令后填写。** 准备、打包、开发、查 ID 或确认“ID 没错”均不授权上传。没有指令时省略此字段或保持 decision=pending，不得为了通过检查自动填写。
+
+```json
+{
+  "upload_authorization": {
+    "decision": "authorized",
+    "operation": "update",
+    "app_id": 322330,
+    "workshop_id": "本次指令对应的工坊ID",
+    "user_request": "此处逐字记录用户实际上传指令，不得复制占位文字或由 AI 编造"
+  }
+}
+```
+
+合并到正常任务中；新建时绑定 operation=create、workshop_id="0"。授权必须对应当前模组、游戏、目标及操作，条件已满足，且未被用户撤销；不得沿用旧任务记录。操作、游戏或 ID 改变时旧记录不能通过检查，需核实新范围是否已有用户明确指令。其他范围或条件变化同样由 AI 核实，不得扩大授权。
+
+上传入口在计划检查和访问 Steam 前检查 decision=authorized、相同 operation/app_id/workshop_id 及非空 user_request。缺失、pending 或不匹配返回 **`5`**，force 不能跳过。程序无法验证对话真实性或自然语言意图，AI 仍必须核实指令，不能把填入 JSON 当作授权。
+
+列表取得的目标还需独立的 target_confirmation；“确认 ID”只确认目标。用户已明确要求上传且已确认目标时无需重复询问相同授权。任何授权/确认字段变更都需重新 plan。
 
 ## 查询本人已发布列表
 
@@ -64,7 +87,7 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 
 规则使用 `/`，匹配忽略大小写：`*` 不跨目录，`?` 匹配一个非分隔字符，`**` 跨目录，`**/` 允许零层目录。规则不接受绝对路径或 `..`。官方冗余扩展名过滤仍按区分大小写的原规则执行。
 
-精确选择运行文件的示例：
+以下示例未包含 upload_authorization，可直接用于离线准备；实际提交时按真实指令补全授权，再重新 plan。精确选择运行文件的示例：
 
 ```json
 {
@@ -101,4 +124,4 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 
 `plan` 会生成 `job.plan.json` 和 `job.workshop/payload_<随机值>/`。快照保留源文件相对布局，联机版附加 manifest。`check` 检查配置、实际选中文件及快照哈希；计划以后有改动就重新生成。运行产物不进入工作流源码目录。
 
-`list` 生成 `query.list.json`；`inspect` 生成 `job.inspect.json`；`upload` 写 `job.upload.log` 和 `job.result.json`。成功退出码 `0`，用法错误 `2`，需要 Steam 协议 `3`，等待明确目标确认 `4`，其他错误 `1`。提交后无法确认的状态会保留工坊 ID，先查询再决定是否重试。任务 JSON 文件名应保持稳定，避免绕过创建任务的回执保护。
+`list` 生成 `query.list.json`；`inspect` 生成 `job.inspect.json`；`upload` 写 `job.upload.log` 和 `job.result.json`。成功退出码 `0`，用法错误 `2`，需要 Steam 协议 `3`，等待明确目标确认 `4`，缺少明确上传授权 `5`，其他错误 `1`。提交后无法确认的状态会保留工坊 ID，先查询再决定是否重试。任务 JSON 文件名应保持稳定，避免绕过创建任务的回执保护。

@@ -31,6 +31,11 @@ internal static class Program
                 default: return Upload(context);
             }
         }
+        catch (UploadAuthorizationRequired exception)
+        {
+            Console.Error.WriteLine("等待用户明确要求上传：" + exception.Message);
+            return 5;
+        }
         catch (TargetConfirmationRequired exception)
         {
             Console.Error.WriteLine("等待用户确认：" + exception.Message);
@@ -73,6 +78,7 @@ internal static class Program
 
     private static int Upload(JobContext context)
     {
+        context.RequireUploadAuthorization();
         context.RequireConfirmedTarget();
         UploadPlan plan = Planner.Check(context);
         UploadJob job = context.Job;
