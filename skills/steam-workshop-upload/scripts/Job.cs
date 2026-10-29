@@ -55,6 +55,17 @@ internal sealed class TargetConfirmation
 
 internal sealed class TargetConfirmationRequired(string message) : Exception(message);
 
+internal sealed class TargetMarker
+{
+    public int Schema { get; set; } = 1;
+    public uint AppId { get; set; }
+    public string WorkshopId { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Version { get; set; } = "";
+    public DateTime? BoundUtc { get; set; }
+    public string BoundBy { get; set; } = "";
+}
+
 internal sealed record FileDigest(string Path, long Bytes, string Sha256);
 internal sealed record SkippedFile(string Path, string Reason);
 
@@ -95,10 +106,11 @@ internal sealed class JobContext
             ?? throw new InvalidOperationException("任务 JSON 为空。");
         if (Job.AppId is not (219740 or 322330)) throw new ArgumentException("app_id 只能是 219740（单机）或 322330（联机）。");
         if (Job.Operation is not ("update" or "create")) throw new ArgumentException("operation 只能是 update 或 create。");
-        if (Job.TargetSource is not ("user" or "list")) throw new ArgumentException("target_source 只能是 user 或 list。");
-        if (Job.Operation == "create" && Job.TargetSource == "list") throw new ArgumentException("列表候选只能用于 update，不能擅自新建物品。");
-        if (!ulong.TryParse(Job.WorkshopId, out ulong id) || (Job.Operation == "update" ? id == 0 : id != 0))
-            throw new ArgumentException("update 必须提供非零字符串 workshop_id；create 的 workshop_id 必须是字符串 0。");
+        if (Job.TargetSource is not ("user" or "list" or "marker")) throw new ArgumentException("target_source 只能是 user、list 或 marker。");
+        if (Job.Operation == "create" && Job.TargetSource != "user") throw new ArgumentException("列表候选或 marker 绑定只能用于 update，不能擅自新建物品。");
+        bool markerFill = Job.TargetSource == "marker" && Job.WorkshopId == "0";
+        if (!markerFill && (!ulong.TryParse(Job.WorkshopId, out ulong id) || (Job.Operation == "update" ? id == 0 : id != 0)))
+            throw new ArgumentException("update 必须提供非零字符串 workshop_id；create 的 workshop_id 必须是字符串 0。（target_source=marker 时可填字符串 0，由绑定标记解析。）");
         if (string.IsNullOrWhiteSpace(Job.SourceDirectory)) throw new ArgumentException("缺少 source_directory。");
         SourceRoot = Resolve(Job.SourceDirectory);
         if (!Directory.Exists(SourceRoot)) throw new DirectoryNotFoundException("模组目录不存在：" + SourceRoot);
@@ -106,6 +118,7 @@ internal sealed class JobContext
             throw new ArgumentException("请使用模组的实际目录，不要使用符号链接或目录联接。");
         if (SamePath(SourceRoot, JobDirectory)) throw new ArgumentException("任务 JSON 应放在 _ai_work/workshop/ 等独立子目录。");
         if (!File.Exists(Path.Combine(SourceRoot, "modinfo.lua"))) throw new ArgumentException("模组根目录缺少 modinfo.lua。");
+        if (Job.TargetSource == "marker") ResolveTargetMarker();
         if (Job.Visibility is < 0 or > 3) throw new ArgumentException("visibility 必须为 0、1、2 或 3。");
         if (Job.Include == null || Job.Exclude == null || Job.Include.Length == 0)
             throw new ArgumentException("include 必须是非空数组，exclude 必须是数组。");
@@ -129,6 +142,41 @@ internal sealed class JobContext
     }
 
     internal string Resolve(string path) => Path.GetFullPath(Path.Combine(JobDirectory, path));
+    internal string TargetMarkerPath => Path.Combine(SourceRoot, ".workshop-target.json");
+    private void ResolveTargetMarker()
+    {
+        TargetMarker marker = ReadTargetMarker();
+        if (Job.WorkshopId == "0") Job.WorkshopId = marker.WorkshopId;
+        else if (!string.Equals(Job.WorkshopId, marker.WorkshopId, StringComparison.Ordinal))
+            throw new ArgumentException("任务 workshop_id 与模组根目录 .workshop-target.json 绑定不一致；更换目标需要用户明确指令并更新绑定。");
+        if (!ulong.TryParse(Job.WorkshopId, out ulong markerId) || markerId == 0)
+            throw new ArgumentException("marker 绑定的 workshop_id 无效：" + Job.WorkshopId);
+        if (Job.UploadAuthorization != null && Job.UploadAuthorization.WorkshopId == "0")
+            Job.UploadAuthorization.WorkshopId = Job.WorkshopId;
+    }
+    internal TargetMarker ReadTargetMarker()
+    {
+        if (!File.Exists(TargetMarkerPath)) throw new ArgumentException("target_source=marker 需要模组根目录存在 .workshop-target.json（首次上传成功后自动生成）。");
+        TargetMarker marker = JsonSerializer.Deserialize<TargetMarker>(File.ReadAllText(TargetMarkerPath), JsonOptions)
+            ?? throw new ArgumentException(".workshop-target.json 为空。");
+        if (marker.Schema != 1 || marker.AppId != Job.AppId || string.IsNullOrWhiteSpace(marker.WorkshopId))
+            throw new ArgumentException(".workshop-target.json 的 schema/app_id/workshop_id 无效，或与任务的 app_id 不一致。");
+        return marker;
+    }
+    internal void WriteTargetMarker(ulong id, string title, string version)
+    {
+        WriteJson(TargetMarkerPath, new TargetMarker
+        {
+            Schema = 1,
+            AppId = Job.AppId,
+            WorkshopId = id.ToString(),
+            Title = title ?? "",
+            Version = version ?? "",
+            BoundUtc = DateTime.UtcNow,
+            BoundBy = "upload-verified",
+        });
+        Console.WriteLine("已更新模组根目录绑定标记：" + TargetMarkerPath);
+    }
     internal void RequireUploadAuthorization()
     {
         UploadAuthorization authorization = Job.UploadAuthorization;
@@ -137,7 +185,7 @@ internal sealed class JobContext
     }
     internal void RequireConfirmedTarget()
     {
-        if (Job.TargetSource != "list") return;
+        if (Job.TargetSource != "list") return; // marker 目标在构造时已按 .workshop-target.json 校验绑定；user 目标由用户直接指定。
         TargetConfirmation confirmation = Job.TargetConfirmation;
         if (confirmation == null || confirmation.Decision != "confirmed" || confirmation.AppId != Job.AppId || confirmation.WorkshopId != Job.WorkshopId || string.IsNullOrWhiteSpace(confirmation.UserReply))
             throw new TargetConfirmationRequired("从列表匹配的 ID 必须先向用户展示名称、游戏、ID、链接并获得确切答复。缺少匹配的 target_confirmation；不得上传，force 不能跳过。");

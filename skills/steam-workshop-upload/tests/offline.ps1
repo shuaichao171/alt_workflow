@@ -1,8 +1,11 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([Parameter(Mandatory = $true)][string]$Workspace)
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
+# 原生 exe 输出为 UTF-8；避免控制台代码页（如 GBK）把中文提示解码成乱码。
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Text.UTF8Encoding]::new($false)
 $workflowRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $testRoot = Join-Path ([IO.Path]::GetFullPath($Workspace)) ('offline-' + [Guid]::NewGuid().ToString('N').Substring(0, 12))
 $modRoot = Join-Path $testRoot '中文 mod'
@@ -230,6 +233,39 @@ $script:job.operation = 'create'
 $script:job.workshop_id = '0'
 Save-Job
 Run-Cli 'plan' 1
+
+# --- marker 绑定：缺失/不一致拒绝；一致时免查免确认直达计划校验；点文件不进入上传内容 ---
+$script:job = [ordered]@{
+    operation = 'update'; app_id = 322330; workshop_id = '0'; target_source = 'marker'
+    source_directory = '../..'; include = @('**'); exclude = @('docs/**', '**/*.bak')
+    upload_authorization = @{ decision = 'authorized'; operation = 'update'; app_id = 322330; workshop_id = '0'; user_request = 'Synthetic offline fixture: update via marker binding. Never submit to Steam.' }
+}
+Save-Job
+Run-Cli 'plan' 1
+Assert-That ((Get-Content -LiteralPath (Join-Path $testRoot 'plan.log') -Raw -Encoding UTF8) -match '\.workshop-target\.json') 'Missing marker file must be rejected.'
+Write-Fixture '.workshop-target.json' '{"schema":1,"app_id":322330,"workshop_id":"7","title":"绑定物品","version":"1.1","bound_utc":"2026-10-29T00:00:00Z","bound_by":"upload-verified"}'
+$script:job.workshop_id = '8'
+Save-Job
+Run-Cli 'plan' 1
+Assert-That ((Get-Content -LiteralPath (Join-Path $testRoot 'plan.log') -Raw -Encoding UTF8) -match '不一致') 'Marker/job ID mismatch must be rejected.'
+$script:job.workshop_id = '0'
+$script:job.upload_authorization.workshop_id = '9'
+Save-Job
+Run-Cli 'upload' 5
+$script:job.upload_authorization.workshop_id = '0'
+Save-Job
+Run-Cli 'plan'
+$plan = Read-Plan
+$markerPaths = @($plan.files | ForEach-Object { $_.path })
+Assert-That ($markerPaths -notcontains '.workshop-target.json') 'Marker dot-file must never enter the upload payload.'
+Run-Cli 'check'
+Write-Fixture 'scripts/sub/中文.lua' '-- changed for marker test'
+Run-Cli 'upload' 1
+Assert-That ((Get-Content -LiteralPath (Join-Path $testRoot 'upload.log') -Raw -Encoding UTF8) -match '已变化') 'Marker target must skip confirmation and reach offline plan validation.'
+Write-Fixture 'scripts/sub/中文.lua' '-- script'
+Save-Job
+Run-Cli 'plan'
+Run-Cli 'check'
 
 Write-Host "PASS: $checks invariant checks, plus source/config/payload tamper and invalid-job rejection."
 Write-Host "Artifacts: $testRoot"

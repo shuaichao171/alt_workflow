@@ -169,6 +169,15 @@ internal static class Program
             phase = "verified";
             Save("verified");
             UploadLog("上传并复查成功，工坊 ID=" + resultingId);
+            try
+            {
+                // 绑定标记：点开头文件，不进入上传内容；后续上传可用 target_source=marker 直连。
+                context.WriteTargetMarker(resultingId, before?.Title ?? (job.UpdateMetadata ? job.Title : ""), plan.Version);
+            }
+            catch (Exception markerException)
+            {
+                UploadLog("写入绑定标记失败（上传已成功，不影响结果）：" + markerException.Message);
+            }
             return 0;
         }
         catch (Exception exception)

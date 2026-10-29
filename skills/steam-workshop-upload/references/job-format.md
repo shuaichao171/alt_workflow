@@ -6,9 +6,9 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 | --- | --- | --- |
 | `operation` | `update` | `update` 更新；`create` 新建 |
 | `app_id` | `322330` | 联机 `322330`，单机 `219740` |
-| `workshop_id` | `"0"` | 更新必须填写非零 ID；新建必须为 `"0"` |
+| `workshop_id` | `"0"` | 更新必须填写非零 ID；新建必须为 `"0"`；`target_source="marker"` 时可填 `"0"`，由绑定标记解析 |
 | `upload_authorization` | 未设置 | 所有 upload（含用户直接给 ID、新建和仅改元数据）均需本次任务的明确上传指令记录，见下文；只读和离线命令不需要 |
-| `target_source` | `user` | `user` 仅用于用户直接指定的 ID/链接；按名称从列表推断的目标必须填 `list` |
+| `target_source` | `user` | `user` 仅用于用户直接指定的 ID/链接；按名称从列表推断的目标必须填 `list`；模组根目录已有 `.workshop-target.json` 绑定时可填 `marker` 直连（免查免确认） |
 | `target_confirmation` | 未设置 | list 目标执行 upload 前必须提供本次任务的用户确认，格式见下文；plan/check/inspect 可先进行 |
 | `source_directory` | 必填 | 含 modinfo.lua 的模组根目录 |
 | `include` | `["**"]` | 包含规则，可逐项列出文件 |
@@ -84,6 +84,24 @@ JSON 文件与日志、计划和快照放在目标项目的 `_ai_work/workshop/`
 ```
 
 这段应合并到正常上传任务中，不是独立可运行任务。等待答复时省略 target_confirmation 或保持 decision=pending。上传前检查 decision、游戏、ID 和非空答复；缺失/不一致返回 `4`，在调用 Steam 前停止，force 不生效。程序不能验证对话真实性，AI 必须遵守 SKILL.md 的明确答复规则。确认后修改 JSON 需重新 plan。
+
+## 绑定标记 .workshop-target.json
+
+每次上传成功（verified）后，工具自动在模组根目录（source_directory）写入以下点开头文件（不进入上传内容）：
+
+```json
+{
+  "schema": 1,
+  "app_id": 322330,
+  "workshop_id": "3827072959",
+  "title": "工坊物品标题",
+  "version": "0.1.11",
+  "bound_utc": "2026-10-29T14:39:15Z",
+  "bound_by": "upload-verified"
+}
+```
+
+`target_source="marker"` 时：标记必须存在且 `app_id` 与任务一致；`workshop_id` 填 `"0"` 自动取绑定值，显式填写则必须与绑定一致（不一致拒绝，防止上传到错误物品）；`upload_authorization.workshop_id` 同样可填 `"0"` 随绑定解析。marker 目标免去 target_confirmation（绑定即目标），但授权检查不变；`create` 不允许使用 marker。换绑是用户决策，见 [SKILL.md](../SKILL.md)。
 
 规则使用 `/`，匹配忽略大小写：`*` 不跨目录，`?` 匹配一个非分隔字符，`**` 跨目录，`**/` 允许零层目录。规则不接受绝对路径或 `..`。官方冗余扩展名过滤仍按区分大小写的原规则执行。
 
