@@ -70,12 +70,19 @@ def cmd_doctor(secrets):
     for name in ("secrets.json", "paths.md"):
         add(f"private/{name}", (PRIVATE_DIR / name).exists())
 
+    def filled(entry, key):
+        v = str(entry.get(key, "<")).strip()
+        return bool(v) and not v.startswith("<")
+
     for name, entry in sorted((secrets or {}).items()):
         if name.startswith("_") or not isinstance(entry, dict):
             continue  # 跳过 _comment 等说明键
-        vals = entry if isinstance(entry, dict) else {}
-        ok = all(str(vals.get(k, "<")).strip() and not str(vals.get(k, "<")).strip().startswith("<")
-                 for k in ("base_url", "api_key"))
+        if "host" in entry or "ssh_alias" in entry:  # 服务器条目：由 scripts/server.py 使用
+            ok = filled(entry, "host") or filled(entry, "ssh_alias")
+            add(f"secrets 服务器条目 {name}", ok,
+                "已配置（连通性用 python scripts/server.py doctor 检查）" if ok else "host 与 ssh_alias 都未填写")
+            continue
+        ok = filled(entry, "base_url") and filled(entry, "api_key")
         add(f"secrets 条目 {name}", ok, "已配置" if ok else "仍是占位值，对应后端会自动跳过")
 
     paths_md = PRIVATE_DIR / "paths.md"
@@ -117,9 +124,10 @@ def run_agent(agent, ctx, only_backend=None):
         print(f"[{ctx.agent}] 使用后端 {btype} ...", file=sys.stderr)
         try:
             result = run(b, ctx)
-        except BackendError as e:
-            attempts.append({"backend": btype, "status": "failed", "reason": str(e)})
-            print(f"[{ctx.agent}] {btype} 失败：{e}", file=sys.stderr)
+        except Exception as e:  # 非 BackendError 的意外异常也记为失败，继续尝试下一个后端
+            reason = str(e) if isinstance(e, BackendError) else f"{type(e).__name__}: {e}"
+            attempts.append({"backend": btype, "status": "failed", "reason": reason})
+            print(f"[{ctx.agent}] {btype} 失败：{reason}", file=sys.stderr)
             continue
         attempts.append({"backend": btype, "status": "ok"})
         return {"ok": True, "agent": ctx.agent, "backend": btype, **result, "attempts": attempts}
@@ -159,9 +167,11 @@ def main():
         prompt = Path(args.prompt_file).read_text(encoding="utf-8")
     elif args.prompt and args.prompt != "-":
         prompt = args.prompt
-    elif not sys.stdin.isatty():
+    elif args.prompt == "-" or not sys.stdin.isatty():
         prompt = sys.stdin.read()
     else:
+        prompt = ""
+    if not prompt.strip():  # AI 调用时 stdin 常是空管道，回落到 agent.json 的默认提示词
         prompt = agent.get("default_prompt", "")
     if not prompt.strip():
         p.error("需要提供提示词")

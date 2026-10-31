@@ -7,8 +7,11 @@
 统一通过画图子代理 `painter`（定义见 [../../agents/painter/](../../agents/painter/)）：
 
 ```
-python scripts/call_agent.py painter "<英文提示词>" -i 参考图1.png -i 参考图2.png --transparent -o <输出目录>
+python <工作流根目录>/scripts/call_agent.py painter "<英文提示词>" -i 参考图1.png -i 参考图2.png --transparent -o <输出目录>
 ```
+
+- 当前目录就是工作流根目录时可简写为 `python scripts/call_agent.py …`；`-i`、`-o` 的相对路径相对于当前目录。
+- 同一时间只跑一个 Codex 生图任务：脚本会自动排队（锁文件 `output/_runs/.codex_image.lock`），不要为了提速并发启动多个。
 
 - 脚本按 [agent.json](../../agents/painter/agent.json) 里的顺序尝试后端：**首选 Codex CLI**（走用户已登录的 ChatGPT / Codex 账号额度）；Codex 不可用（未登录、额度用完、调用失败）时自动退回 OpenAI 兼容接口（需在 `private/secrets.json` 配置 `painter_api`）。
 - 也可用 `--backend codex_image` / `--backend openai_images` 强制指定后端。

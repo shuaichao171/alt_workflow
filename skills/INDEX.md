@@ -5,7 +5,7 @@
 | 技能 | 何时使用 | 文件 |
 | --- | --- | --- |
 | 生成/编辑位图 | 需要生成、修改图片，制作贴图、图标、插画、透明素材 | [image-gen/SKILL.md](image-gen/SKILL.md) |
-| 饥荒工坊上传 | 用户明确要求上传、发布或更新《饥荒》/《饥荒联机版》工坊物品；也支持按任务需要只读查本人列表寻找 ID，匹配目标须明确确认。开发、打包和确认 ID 不授权上传 | [steam-workshop-upload/SKILL.md](steam-workshop-upload/SKILL.md) |
+| 饥荒工坊上传 | 用户明确要求上传、发布或更新《饥荒》/《饥荒联机版》工坊物品，或需要只读查询本人已发布列表/ID（授权规则见 rules/40） | [steam-workshop-upload/SKILL.md](steam-workshop-upload/SKILL.md) |
 | 《饥荒》开发 | 制作《饥荒》/《饥荒联机版》相关内容：模组、动作、贴图、调试日志、无头测试；把联机版内容移植到单机版，或修复、测试单机移植模组（内含 48 个模组专项技能、动作制作流程与联机→单机移植流程） | [dst-modding/SKILL.md](dst-modding/SKILL.md) |
 | 服务器运维 | 在远程服务器上部署/更新服务、迁移容器与账号数据、备份回滚、改 Nginx/宝塔配置、只读巡检与排障 | [server-ops/SKILL.md](server-ops/SKILL.md) |
 

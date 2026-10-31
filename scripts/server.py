@@ -5,7 +5,8 @@
 - **只读优先**：doctor / ps / health / logs / pull 随时可跑；
   写操作（exec / push / backup）必须显式加 `--yes`，否则只打印将要执行的命令。
 - **凭据不回显**：连接信息只从 `private/secrets.json` 的条目读取（默认 `vps_la`），
-  密码/密钥不会出现在任何输出里；认证走 SSH 别名或密钥（本机 Windows 无 sshpass，不支持密码认证）。
+  密钥路径和主机地址在打印的命令里显示为 <hidden>/<host>；认证走 SSH 别名或密钥（本机 Windows 无 sshpass，不支持密码认证）。
+- **push 有护栏**：--dest 拒绝浅层/系统目录；rsync --delete 不删排除项；同步前在服务器 /tmp 打快照并给出回滚命令。
 - 只用 Python 标准库 + 本机 `ssh` / `scp` / `tar`。
 
 用法示例：
@@ -21,8 +22,10 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -32,10 +35,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SECRETS = ROOT / "private" / "secrets.json"
 
-# push 时默认排除的内容（运行期数据与凭据一律不上服务器）
-DEFAULT_EXCLUDES = [".git", "node_modules", "data", "secrets", "config/config.json", ".deploy-tmp"]
+# push 时默认排除的内容（运行期数据与凭据一律不上服务器）；
+# 服务器端 rsync --delete 同样排除它们，保证目标目录里的同名文件不会被删
+DEFAULT_EXCLUDES = [".git", "node_modules", "data", "secrets", "config/config.json",
+                    ".env", "backups", ".deploy-tmp"]
+
+# push --dest 不允许落在这些目录本身（rsync --delete 会清空它们）
+PROTECTED_DESTS = {"/", "/root", "/home", "/etc", "/var", "/usr", "/opt", "/srv", "/tmp",
+                   "/www", "/www/wwwroot", "/www/server", "/boot", "/bin", "/sbin", "/lib"}
 
 READ_ONLY_HINT = "只打印将要执行的命令；确认无误后加 --yes 真正执行"
+
+# load_server 读到的主机名/IP，打印命令时替换成占位符
+_SENSITIVE: list[str] = []
 
 
 def out(text: str = "") -> None:
@@ -97,7 +109,16 @@ def load_server(name: str) -> dict:
         die(f"private/secrets.json 里没有服务器条目 `{name}`")
     if not entry.get("ssh_alias") and not entry.get("host"):
         die(f"条目 `{name}` 既没有 host 也没有 ssh_alias")
+    host = str(entry.get("host") or "").strip()
+    if host and not host.startswith("<"):
+        _SENSITIVE.append(host)
     return entry
+
+
+def target_label(entry: dict) -> str:
+    """给人看的连接目标：有别名显示别名，否则不显示真实主机。"""
+    alias = str(entry.get("ssh_alias") or "").strip()
+    return alias or f"{entry.get('user', 'root')}@<host>"
 
 
 def ssh_cmd(entry: dict) -> list[str]:
@@ -150,17 +171,36 @@ def run(cmd: list[str], quiet: bool = False) -> subprocess.CompletedProcess:
 
 
 def _mask(cmd: list[str]) -> list[str]:
-    """防止把 -i 后面的私钥路径之外的敏感项打印出来（保留命令可读性）。"""
+    """打印前隐藏敏感项：-i 后的私钥路径、命令里出现的服务器主机名/IP。"""
     masked, skip = [], False
     for part in cmd:
         if skip:
             masked.append("<hidden>")
             skip = False
             continue
+        for s in _SENSITIVE:
+            part = part.replace(s, "<host>")
         masked.append(part)
         if part in ("-i", "--password-stdin"):
             skip = True
     return masked
+
+
+def check_remote_dest(dest: str, allow_shallow: bool = False) -> str:
+    """push --dest 的安全检查：rsync --delete 会让目标目录与包内容完全一致。"""
+    if not dest.startswith("/"):
+        die(f"--dest 必须是服务器上的绝对路径：{dest}")
+    if not re.fullmatch(r"[A-Za-z0-9._/@+-]+", dest):
+        die(f"--dest 只允许字母、数字和 ._/@+-：{dest}")
+    parts = [p for p in dest.split("/") if p]
+    if any(p in (".", "..") for p in parts):
+        die(f"--dest 不能包含 . 或 ..：{dest}")
+    normalized = "/" + "/".join(parts)
+    if normalized in PROTECTED_DESTS:
+        die(f"--dest 是受保护目录 {normalized}，拒绝 --delete 同步")
+    if len(parts) < 3 and not allow_shallow:
+        die(f"--dest 层级太浅（{normalized}）；确认无误时加 --allow-shallow-dest")
+    return normalized
 
 
 def remote(entry: dict, command: str, quiet: bool = False) -> subprocess.CompletedProcess:
@@ -192,8 +232,8 @@ def cmd_doctor(args) -> int:
         out(f"  {tool:<5} {path or 'MISSING'}")
         if not path:
             problems.append(f"本机缺少 {tool}")
-    out(f"  私钥   {entry.get('key_path') or '(用 ssh 别名/默认密钥)'}")
-    out(f"  入口   {'ssh ' + str(entry.get('ssh_alias')) if entry.get('ssh_alias') else entry.get('user', 'root') + '@' + str(entry.get('host'))}")
+    out(f"  私钥   {'<已配置>' if entry.get('key_path') else '(用 ssh 别名/默认密钥)'}")
+    out(f"  入口   ssh {target_label(entry)}")
     if not entry.get("ssh_alias") and not entry.get("key_path"):
         out("  提示   没有别名也没有 key_path：若只能密码登录，本机无法脚本化（无 sshpass）")
 
@@ -236,7 +276,8 @@ def cmd_ps(args) -> int:
 
 def cmd_health(args) -> int:
     entry = load_server(args.server)
-    res = remote(entry, f"curl -s -m {args.timeout} http://127.0.0.1:{args.port}{args.path}")
+    url = shlex.quote(f"http://127.0.0.1:{args.port}{args.path}")
+    res = remote(entry, f"curl -s -m {args.timeout} {url}")
     return 0 if show(res, "健康检查") else 1
 
 
@@ -244,21 +285,22 @@ def cmd_logs(args) -> int:
     entry = load_server(args.server)
     cmd = f"docker logs --tail {args.tail}"
     if args.since:
-        cmd = f"docker logs --since {args.since}"
-    cmd += f" {args.container} 2>&1 | tail -{args.tail}"
+        cmd = f"docker logs --since {shlex.quote(args.since)}"
+    cmd += f" {shlex.quote(args.container)} 2>&1 | tail -{args.tail}"
     return 0 if show(remote(entry, cmd)) else 1
 
 
 def cmd_exec(args) -> int:
     entry = load_server(args.server)
-    command = args.command
-    if isinstance(command, list):
-        command = " ".join(command)
+    parts = list(args.remote_command)
+    if parts and parts[0] == "--":  # 只去掉分隔用的第一个 --，命令里的 -- 原样保留
+        parts = parts[1:]
+    command = " ".join(parts)
     if not command.strip():
         die("没给要执行的命令，例如：exec --yes -- 'uname -a'")
     if not args.yes:
         head(READ_ONLY_HINT)
-        out("$ ssh " + str(entry.get("ssh_alias") or entry.get("host")) + " " + repr(command))
+        out(f"$ ssh {target_label(entry)} {command!r}")
         return 0
     return 0 if show(remote(entry, command)) else 1
 
@@ -277,19 +319,23 @@ def cmd_pull(args) -> int:
 
 def cmd_backup(args) -> int:
     entry = load_server(args.server)
-    files = " ".join(f"'{f}'" for f in args.files)
+    files = " ".join(shlex.quote(f) for f in args.files)
+    # 先确认所有文件都存在：缺一个就整体不备份并报错，避免“以为备份了”
     script = (
-        "set -e; D=" + fix_msys_path(args.dir) + "; TS=$(date +%Y%m%d-%H%M%S); "
+        "set -e; D=" + shlex.quote(fix_msys_path(args.dir)) + "; TS=$(date +%Y%m%d-%H%M%S); "
+        f"missing=0; for f in {files}; do "
+        "  [ -f \"$D/$f\" ] || { echo \"MISSING: $D/$f\" >&2; missing=1; }; done; "
+        "[ \"$missing\" = 0 ] || { echo '有文件不存在，未做任何备份' >&2; exit 3; }; "
         "mkdir -p \"$D/backups\"; "
         f"for f in {files}; do "
-        "  if [ -f \"$D/$f\" ]; then cp -p \"$D/$f\" \"$D/backups/$(basename \"$f\").$TS.bak\"; "
-        "    echo \"backup: $D/backups/$(basename \"$f\").$TS.bak\"; fi; done; "
-        "chmod 600 \"$D\"/backups/*.\"$TS\".bak 2>/dev/null || true; "
+        "  cp -p \"$D/$f\" \"$D/backups/$(basename \"$f\").$TS.bak\"; "
+        "  echo \"backup: $D/backups/$(basename \"$f\").$TS.bak\"; done; "
+        "chmod 600 \"$D\"/backups/*.\"$TS\".bak; "
         "md5sum \"$D\"/backups/*.\"$TS\".bak"
     )
     if not args.yes:
         head(READ_ONLY_HINT)
-        out(f"$ ssh {entry.get('ssh_alias') or entry.get('host')} {script!r}")
+        out(f"$ ssh {target_label(entry)} {script!r}")
         return 0
     head("备份")
     ok = show(remote(entry, script), "备份")
@@ -300,30 +346,38 @@ def cmd_backup(args) -> int:
 
 def cmd_push(args) -> int:
     entry = load_server(args.server)
-    dest = fix_msys_path(args.dest)
+    dest = check_remote_dest(fix_msys_path(args.dest), args.allow_shallow_dest)
     src = Path(args.src).expanduser().resolve()
     if not src.is_dir():
         die(f"--src 不是目录：{src}")
     excludes = list(DEFAULT_EXCLUDES) + list(args.exclude or [])
-    name = args.name or src.name.lower().replace(" ", "-")
+    name = re.sub(r"[^a-z0-9._-]+", "-", (args.name or src.name).lower()).strip("-") or "push"
     tarball = Path(tempfile.gettempdir()) / f"{name}-{args.stamp}.tgz"
     staging = f"/tmp/{name}-push"
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    snapshot = f"/tmp/{name}-before-{stamp}.tgz"
+    cleaned = [p[2:] if p.startswith("./") else p.lstrip("/") for p in excludes]
     tar_cmd = ["tar", "czf", str(tarball), "-C", str(src)]
-    for pattern in excludes:
-        cleaned = pattern[2:] if pattern.startswith("./") else pattern.lstrip("/")
-        tar_cmd.append(f"--exclude=./{cleaned}")
+    tar_cmd += [f"--exclude=./{p}" for p in cleaned]
     tar_cmd.append(".")
+    # 前导 / 把排除锚定在同步根目录；被排除的文件不会被 --delete 删掉
+    rsync_ex = " ".join(f"--exclude={shlex.quote('/' + p)}" for p in cleaned)
+    snap_ex = " ".join(f"--exclude={shlex.quote('./' + p)}" for p in cleaned)
+    q_dest, q_stage, q_tgz, q_snap = (shlex.quote(x) for x in (dest, staging, f"/tmp/{tarball.name}", snapshot))
+    rollback = (f"set -e; rm -rf {q_stage}; mkdir -p {q_stage}; tar xzf {q_snap} -C {q_stage}; "
+                f"rsync -a --delete {rsync_ex} {q_stage}/ {q_dest}/; rm -rf {q_stage}")
 
     head("计划")
     out(f"  本机 {src}")
-    out(f"  目标 {entry.get('ssh_alias') or entry.get('host')}:{dest}")
-    out(f"  排除 {', '.join(excludes)}")
+    out(f"  目标 {target_label(entry)}:{dest}")
+    out(f"  排除 {', '.join(excludes)}（服务器端同名文件保留不删）")
+    out(f"  快照 同步前把目标目录打包到 {snapshot}")
     if not args.yes:
         head(READ_ONLY_HINT)
         out("  1) " + " ".join(tar_cmd))
         out(f"  2) scp  {tarball} → /tmp/{tarball.name}")
-        out(f"  3) ssh  rm -rf {staging} && mkdir -p {staging} && "
-            f"tar xzf /tmp/{tarball.name} -C {staging} && rsync -a --delete {staging}/ {dest}/")
+        out(f"  3) ssh  tar czf {snapshot} -C {dest} . && 解包到 {staging} && "
+            f"rsync -a --delete {rsync_ex} {staging}/ {dest}/")
         return 0
 
     head("1/3 打包")
@@ -335,16 +389,19 @@ def cmd_push(args) -> int:
     if not show(run(scp_cmd(entry) + [str(tarball), scp_target(entry, f"/tmp/{tarball.name}")]), "scp 上传"):
         return 1
 
-    head("3/3 同步到目标目录")
-    sync = (f"set -e; rm -rf {staging}; mkdir -p {staging}; "
-            f"tar xzf /tmp/{tarball.name} -C {staging}; "
-            f"mkdir -p {dest}; rsync -a --delete {staging}/ {dest}/; "
-            f"rm -rf {staging}; echo 'synced -> {dest}'")
+    head("3/3 快照并同步到目标目录")
+    sync = (f"set -e; command -v rsync >/dev/null || {{ echo '服务器缺少 rsync' >&2; exit 4; }}; "
+            f"mkdir -p {q_dest}; tar czf {q_snap} {snap_ex} -C {q_dest} .; echo 'snapshot -> {snapshot}'; "
+            f"rm -rf {q_stage}; mkdir -p {q_stage}; tar xzf {q_tgz} -C {q_stage}; "
+            f"rsync -a --delete {rsync_ex} {q_stage}/ {q_dest}/; "
+            f"rm -rf {q_stage}; echo 'synced -> {dest}'")
     if not show(remote(entry, sync), "rsync"):
         return 1
     out()
     out("后续：跑安装脚本 → 重启容器 → 等 healthy → 验证（见 skills/server-ops/02-部署与更新.md）")
-    out(f"记得清理：本机 {tarball}、服务器 /tmp/{tarball.name}")
+    out("代码回滚命令（写进交付说明）：")
+    out(f"  python scripts/server.py exec --yes -- {shlex.quote(rollback)}")
+    out(f"记得清理：本机 {tarball}、服务器 /tmp/{tarball.name}；确认无需回滚后删除 {snapshot}")
     return 0
 
 
@@ -355,7 +412,7 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="服务器运维封装（只读优先，写操作需 --yes）")
     parser.add_argument("--server", default="vps_la", help="private/secrets.json 里的条目名（默认 vps_la）")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="subcommand", required=True)
 
     sub.add_parser("doctor", help="只读：本机依赖 + 连通性 + 服务器基线").set_defaults(func=cmd_doctor)
     sub.add_parser("ps", help="只读：容器列表").set_defaults(func=cmd_ps)
@@ -395,13 +452,10 @@ def main() -> int:
     p.add_argument("--exclude", action="append", default=[], help="额外排除模式（可重复）")
     p.add_argument("--name", default="", help="包名（默认取目录名）")
     p.add_argument("--stamp", default="src", help="包名后缀，便于区分多次推送")
+    p.add_argument("--allow-shallow-dest", action="store_true", help="允许少于 3 级的目标目录")
     p.set_defaults(func=cmd_push)
 
     args = parser.parse_args()
-    if args.command == "exec":
-        # argparse.REMAINDER 会把 `--` 也带进来，去掉它
-        args.command_list = [c for c in args.remote_command if c != "--"]
-        args.command = " ".join(args.command_list)
     try:
         return args.func(args)
     except KeyboardInterrupt:

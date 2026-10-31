@@ -5,15 +5,46 @@
 
 提示词通过 stdin 传入，避免 Windows 命令行转义问题。不读取 ~/.codex 下的登录凭据。
 """
+import contextlib
 import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
 
-from .common import BackendError, copy_outputs, images_newer_than
+from .common import OUTPUT_DIR, BackendError, copy_outputs, images_newer_than
 
 DEFAULT_GEN_DIR = "~/.codex/generated_images"
+IMAGE_LOCK = OUTPUT_DIR / "_runs" / ".codex_image.lock"
+
+
+@contextlib.contextmanager
+def _image_lock(timeout):
+    """codex_image 按修改时间从共享的 generated_images 取图，并发运行会拿到彼此的图，所以串行执行。
+    超过 timeout+60 秒未释放的锁视为上次异常退出留下的，直接接管。"""
+    IMAGE_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.time() + timeout
+    while True:
+        try:
+            fd = os.open(IMAGE_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            break
+        except FileExistsError:
+            try:
+                if time.time() - IMAGE_LOCK.stat().st_mtime > timeout + 60:
+                    IMAGE_LOCK.unlink()
+                    continue
+            except FileNotFoundError:
+                continue
+            if time.time() > deadline:
+                raise BackendError(f"另一个 codex_image 任务仍在运行（锁 {IMAGE_LOCK}），等待超时")
+            time.sleep(2)
+    try:
+        yield
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            IMAGE_LOCK.unlink()
 
 
 def _exe(cfg):
@@ -75,17 +106,18 @@ def run_image(cfg, ctx):
     if ctx.transparent:
         prompt += "\n\n" + cfg.get("transparent_suffix", "Use a TRANSPARENT background.")
 
-    start = time.time() - 1
-    run_dir, reply, dry = _run(cfg, ctx, prompt, cfg.get("sandbox", "workspace-write"), "codex_image")
-    if dry:
-        return dry
+    if ctx.dry_run:
+        return _run(cfg, ctx, prompt, cfg.get("sandbox", "workspace-write"), "codex_image")[2]
 
-    # Codex 沙盒在本机常报 apply deny-read ACLs、复制不出文件，所以直接去 generated_images 取新图
-    gen_dir = Path(os.path.expanduser(cfg.get("generated_images_dir", DEFAULT_GEN_DIR)))
-    found = images_newer_than(gen_dir, start) or images_newer_than(run_dir, start)
-    if not found:
-        raise BackendError(f"codex 未生成图片。回复：{reply[:500]}")
-    return {"files": copy_outputs(ctx, found), "text": reply, "run_dir": str(run_dir)}
+    with _image_lock(ctx.timeout):
+        start = time.time() - 1
+        run_dir, reply, _ = _run(cfg, ctx, prompt, cfg.get("sandbox", "workspace-write"), "codex_image")
+        # Codex 沙盒在本机常报 apply deny-read ACLs、复制不出文件，所以直接去 generated_images 取新图
+        gen_dir = Path(os.path.expanduser(cfg.get("generated_images_dir", DEFAULT_GEN_DIR)))
+        found = images_newer_than(gen_dir, start) or images_newer_than(run_dir, start)
+        if not found:
+            raise BackendError(f"codex 未生成图片。回复：{reply[:500]}")
+        return {"files": copy_outputs(ctx, found), "text": reply, "run_dir": str(run_dir)}
 
 
 def run_text(cfg, ctx):

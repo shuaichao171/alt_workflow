@@ -13,6 +13,8 @@
 | `OPENSPINE_DIR` | OpenSpine | `<安装目录>` |
 | `POWERSHELL_DIR` | PowerShell | `<安装目录>` |
 | `BLENDER_DIR` | Blender | `<安装目录>` |
+| `CLAUDE_DESKTOP_DIR` | Claude Desktop 安装目录（可选） | `<安装目录>` |
+| `CLAUDE_PROFILE_BACKUP` | Claude Desktop 旧配置备份目录（可选，含登录态，勿公开） | `<目录>` |
 
 ## 《饥荒》
 
@@ -39,4 +41,4 @@
 | `VPS_BT_VHOST_DIR` | 宝塔 Nginx vhost 目录 | `<如 /www/server/panel/vhost/nginx>` |
 | `VPS_BT_CERT_DIR` | 宝塔证书目录 | `<如 /www/server/panel/vhost/cert>` |
 
-> 连接凭据（host / port / user / password / ssh_alias）写在 `secrets.json` 的服务器条目里，不写在本文件。
+> 连接信息（host / port / user / ssh_alias / key_path）写在 `secrets.json` 的服务器条目里，不写在本文件。只用密钥认证，不在任何文件里保存 SSH 密码。

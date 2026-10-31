@@ -1,0 +1,8 @@
+# 仓库内统一 LF；Windows 检出时按 core.autocrlf 转换（.md 固定 LF）
+* text=auto
+*.md text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.dll binary
+*.png binary
+*.zip binary

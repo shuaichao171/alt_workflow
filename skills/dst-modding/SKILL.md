@@ -28,17 +28,17 @@
 - 《饥荒》模组技能目录：[mod-skills/](mod-skills/)，分类速查见 [mod-skills/SKILL-CATALOG.md](mod-skills/SKILL-CATALOG.md)。
 - 根据当前任务从该目录中选择最少数量的相关 Skill；采取任务行动前，完整读取每个选中 Skill 的 `SKILL.md`。
 - 不要读取与当前任务无关的其他 Skill。后续任务的内容发生变化时，重新判断需要使用的 Skill。
-- 部分 Skill 里写的源码目录 `D:\steam\...\data\scripts` 是作者本机的默认值，以 `DST_DATA_DIR` 的实际值为准。
+- Skill 里的源码与工具路径用 `DST_DATA_DIR`、`DST_GAME_HOME` 占位；其中的 PowerShell 脚本先读同名环境变量，也可用 `-Root` 显式传入。
 
 ## 工坊上传
 
-- **只有用户在本次任务中明确要求上传、发布或更新工坊物品，才允许提交。** 开发、修复、测试、打包、修改版本或确认 ID 不代表授权上传，不自动追加发布步骤。按 [工坊上传授权规则](../../rules/40-workshop-upload.md) 执行。
-- 用户要求上传或需要只读查询工坊时，使用 [../steam-workshop-upload/SKILL.md](../steam-workshop-upload/SKILL.md)：支持按名称查询本人列表（匹配 ID 必须经用户明确确认）、AI 选择文件、离线清单和快照、单机/联机上传及结果回查。仅开发模组时无需加载上传技能。
+- 只有用户明确要求上传/发布，或需要只读查询工坊时，才使用 [../steam-workshop-upload/SKILL.md](../steam-workshop-upload/SKILL.md)；授权条件以 [rules/40-workshop-upload.md](../../rules/40-workshop-upload.md) 为准。仅开发模组时不加载上传技能，也不追加发布步骤。
 
 ## 无头测试
 
 - 用户要求《饥荒联机版》无头测试、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。
 - 修改影响引擎运行的逻辑（如组件、动作、AI、状态机、碰撞、存档、世界生成）时，按该技能选择相关无头用例；执行前完整阅读其通用流程。纯文档、静态资源修改按实际需要验证。
+- 单分片离线回归直接用该技能的 `scripts/dst_headless_run.py`（快照 → 独立集群 → 行为脚本 → 判定 → 清理），只需写行为脚本；改动后先跑 `mod-skills/dst-debugging-testing/scripts/dst_lua_check.py` 做语法和组件方法静态检查。
 - 通用流程见 [mod-skills/dst-dedicated-server-testing/references/headless-workflow.md](mod-skills/dst-dedicated-server-testing/references/headless-workflow.md)，覆盖隔离环境、场景驱动、结果判定、修复复测与进程清理。具体用例由当前模组定义。
 - 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版没有专服，不套用联机版专服命令，改用游戏内自动测试模组，见 [ds-porting/06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
 

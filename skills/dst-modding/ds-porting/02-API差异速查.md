@@ -40,6 +40,12 @@
 
 阵营 hook 模板：在 `Combat:GetAttacked` 里，攻击方带 `player_<阵营>_aligned` 时对敌对阵营增伤；防守方带该标签时对同阵营来源减伤；来源同时检查 attacker 和 weapon。
 
+三点时序/参数语义（威尔逊 2026-10-31，源码：对照单机四份源码后修正）：
+
+- **增伤**对齐 DST 的 `damagetypebonus`（在攻击方 `CalcDamage` 里乘算，属护甲**前**），因此在 `Combat:GetAttacked` 里乘算正确。
+- **抗性**对齐 DST 的 `damagetyperesist`：DST 先 `inventory:ApplyDamage`（护甲吸收）再乘 `damagetyperesist`。写进 `GetAttacked` 会对护甲前伤害乘算，与护甲的固定吸收叠乘（100 伤害 + 80 吸收：护甲前只吃 10，护甲后吃 18），比 DST 强得多。正确做法是钩 `Inventory:ApplyDamage` 的返回值（woodie 案例同此法）。
+- **单机四份 `Combat` 调 `Inventory:ApplyDamage(damage, attacker)` 都不传 weapon**（Base/DLC0001/DLC0002/DLC0003 全部如此），护甲后的抗性要识别“武器提供的阵营”就必须在 `GetAttacked` 里把 weapon 暂存到目标（`inst._xxx_incoming_weapon`），`ApplyDamage` 里用 `weapon or inst._xxx_incoming_weapon`。
+
 ## 3. 各 DLC 之间的分叉
 
 | 项目 | Base / RoG | SW / Hamlet | 处理 |

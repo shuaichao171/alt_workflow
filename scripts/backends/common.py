@@ -43,7 +43,8 @@ class Context:
         d.mkdir(parents=True, exist_ok=True)
         keep = int(os.environ.get("ALTWF_KEEP_RUNS", "30"))
         if keep >= 0:
-            old = sorted(p for p in runs.iterdir() if p.is_dir())
+            # 本次目录永远保留，其余按时间只留最近 keep 个
+            old = sorted(p for p in runs.iterdir() if p.is_dir() and p != d)
             for p in (old if keep == 0 else old[:-keep]):
                 shutil.rmtree(p, ignore_errors=True)
         return d
@@ -98,11 +99,17 @@ def http_json(url, api_key, body=None, content_type="application/json", timeout=
         req.add_header("Content-Type", content_type)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            raw = resp.read()
     except urllib.error.HTTPError as e:
         raise BackendError(f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:800]}")
     except urllib.error.URLError as e:
         raise BackendError(f"网络请求失败: {e.reason}")
+    except (TimeoutError, OSError) as e:  # 读超时、连接被重置等不会包装成 URLError
+        raise BackendError(f"网络请求失败: {type(e).__name__}: {e}")
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise BackendError(f"返回的不是 JSON: {raw[:300].decode('utf-8', 'replace')}")
 
 
 def build_multipart(fields, files):

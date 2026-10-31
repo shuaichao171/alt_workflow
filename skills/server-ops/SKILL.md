@@ -6,7 +6,7 @@
 
 1. **只读侦察 → 备份 → 变更 → 验证**，四步不跳。事实没查清之前不要写任何东西。
 2. 生产变更前先说清楚：改什么、影响哪些服务、预计停机多久，**等用户确认再执行**。
-3. 凭据（SSH 密码/密钥、AK/SK、session、管理台密码、下游密钥）只从 `private/secrets.json` 由脚本读取；
+3. 凭据（SSH 密钥、AK/SK、session、管理台密码、下游密钥）只从 `private/secrets.json` 由脚本读取；
    不打印、不复述、不写进日志与提交信息、不进公开文件。
 4. 含明文凭据的中间文件（迁移载荷、导出包、临时脚本）**用完立刻删**，本机与服务器两端都清。
 5. 改前必须备份并记下备份路径 + md5；交付时必须给出回滚命令。
@@ -29,7 +29,7 @@
 
 ## 环境与凭据
 
-- 连接信息：`private/secrets.json` → `vps_la`（`host` / `port` / `user` / `password` / `ssh_alias` / `key_path`）。
+- 连接信息：`private/secrets.json` → `vps_la`（`host` / `port` / `user` / `ssh_alias` / `key_path`）。只用密钥认证，不保存 SSH 密码（脚本也不支持密码登录）。
   **不要读值、不要在回复里复述**；交给 `scripts/server.py` 或 `ssh <别名>` 用。
 - 服务器目录：占位名写在 `private/paths.md` 的「服务器」小节（`VPS_DOCKER_ROOT`、`VPS_LOOMY_DEPLOY_DIR`、
   `VPS_BT_VHOST_DIR` …）；本文件与子文件里一律只用占位名。
@@ -39,6 +39,8 @@
   所以远程路径一律交给 `scripts/server.py`（它会还原），手工执行 ssh/scp 时加 `MSYS_NO_PATHCONV=1` 前缀。
 
 ## 常用入口
+
+命令中的 `scripts/` 相对于工作流根目录；在其他项目里工作时写成 `python <工作流根目录>/scripts/server.py …`。
 
 ```bash
 # 只读，随时可跑
