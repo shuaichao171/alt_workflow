@@ -109,6 +109,12 @@
 - `wormhole.lua` 不检查 `nowormholesanityloss`：需要钩虫洞传送，只抵消那一次理智扣除。
 - `GetDistanceSqToPoint` 在旧版单机接收一个 `Vector3`，不是三个数。
 - `SoundEmitter` 停止命名声音用 `KillSound`，没有 `StopSound`。
+- **`GetString(character, key)` 的第一个参数是角色名字符串**：四份单机源码都先 `string.upper(character)`，传实体（DST 写法 `GetString(inst, ...)`）直接报错；传 `inst.prefab`（沃特 2026-10-31，源码）。
+- **地面加速只认 ROAD/COBBLEROAD**：`LocoMotor:UpdateGroundSpeedMultiplier` 每 0.5 秒先把 `groundspeedmultiplier` 重置为 1 再判断蛛网、道路、洪水。DST 的 `SetFasterOnGroundTile` 要包装这个方法、只在结果为 1 时升档，不要另开轮询去写字段（会互相覆盖并无视蛛网/洪水减速）（沃特 2026-10-31，源码）。
+- **潮湿滑落只看物品 `notslippery` 标签**：单机 `player_common` 的 `OnWork`/攻击回调里，手持物没有 `notslippery` 就可能滑落；DST 的 `stronggrip` 标签单机不读，改为装备时给手持物临时加 `notslippery`、卸下时移除（沃特 2026-10-31，源码）。
+- **`Health:DoDelta` 没有 afflicter 参数**：DST `deltamodifierfn` 靠 `afflicter ~= nil` 只处理攻击伤害；单机要在 `Combat:GetAttacked` 期间给目标置标志，否则火焰、饥饿等伤害也会被当成战斗伤害（沃特 2026-10-31，源码）。
+- **素食**：Base `SetVegetarian()` 只设 `foodprefs = {VEGGIE, ROUGHAGE}`；RoG+ `SetVegetarian()` 不传 `human` 时 `ablefoods = {VEGGIE}`，种子、GENERIC 都吃不了。对齐 DST `FOODGROUP.VEGETARIAN` 要同时设 `foodprefs` 和 `ablefoods`（单机没有 BERRY/GOODIES 类型）（沃特 2026-10-31，源码）。
+- 单机没有 `foodaffinity`、`itemaffinity`、`preserver` 组件：饱食加成钩 `Edible:GetHunger(eater)`（四份签名一致；SW/Hamlet 另有 `eater.gethungermultfn`，两者别同时用）；`perishable` 不查询持有者的 `preserver`（沃特 2026-10-31，源码）。
 - 单机事件监听器收到的参数和联机版闭包假设可能不同：回调里显式捕获真实实例。
 - `EntityScript:DoTaskInTime(time, fn, ...)` 回调参数是 `(inst, ...)`。
 
