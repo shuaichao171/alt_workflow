@@ -59,7 +59,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 开始工作前，先阅读并遵循 <alt_workflow 所在目录>/AGENTS.md。
 ```
 
-也可以把这句话写进全局配置（如 `~/.claude/AGENTS.md`、`~/.codex/AGENTS.md`），让所有项目默认使用。
+也可以把这句话写进全局配置，让所有项目默认使用：Codex 读 `~/.codex/AGENTS.md`；Claude Code 只自动读 `~/.claude/CLAUDE.md`（不读 `AGENTS.md`），可在其中写 `@AGENTS.md` 导入同目录的 `AGENTS.md`。
 
 ## 扩展
 

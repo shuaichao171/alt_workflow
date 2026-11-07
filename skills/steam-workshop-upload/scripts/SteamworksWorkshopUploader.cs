@@ -797,7 +797,7 @@ namespace KleiWorkshopUploader
             catch (InvalidOperationException ex)
             {
                 firstError = ex;
-                if (!IsRemoteStorageShareFileNotFound(ex, remoteName))
+                if (!IsRemoteStorageShareRetryableWithNewName(ex, remoteName))
                 {
                     throw;
                 }
@@ -890,11 +890,20 @@ namespace KleiWorkshopUploader
             return name + "_" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "_" + Guid.NewGuid().ToString("N").Substring(0, 8) + extension;
         }
 
-        private static bool IsRemoteStorageShareFileNotFound(Exception ex, string remoteName)
+        // FileShare on the fixed name can fail with FileNotFound, or keep failing
+        // with Busy after the same name was just rewritten by another upload
+        // (seen 2026-11-07: Busy persisted across Steam restarts). Both are
+        // worth one retry under a unique name; the share step happens before
+        // any commit, so the retry cannot double-publish.
+        private static bool IsRemoteStorageShareRetryableWithNewName(Exception ex, string remoteName)
         {
             string message = ex == null ? "" : (ex.Message ?? "");
-            return message.IndexOf("FileShare(" + remoteName + ")", StringComparison.OrdinalIgnoreCase) >= 0
-                && message.IndexOf("FileNotFound", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (message.IndexOf("FileShare(" + remoteName + ")", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return false;
+            }
+            return message.IndexOf("FileNotFound", StringComparison.OrdinalIgnoreCase) >= 0
+                || message.IndexOf("Busy", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static RemoteStoragePublishFileResult RemoteStoragePublishWorkshopFile(
@@ -1931,9 +1940,11 @@ namespace KleiWorkshopUploader
                 case 5: return "InvalidPassword";
                 case 8: return "InvalidParam";
                 case 9: return "FileNotFound";
+                case 10: return "Busy";
                 case 15: return "AccessDenied";
                 case 16: return "Timeout";
                 case 20: return "ServiceUnavailable";
+                case 21: return "NotLoggedOn";
                 case 25: return "LimitExceeded";
                 case 50: return "InsufficientPrivilege";
                 default: return "EResult " + result;
