@@ -75,7 +75,7 @@
 | 鬼魂、作祟复活、他人复活 | 死亡时自动触发复活（旺达第二次机会表）；接入 `resurrector` 流程（机器人备份躯体） |
 | 分片、洞穴跨服 | 记录存档模式（RoG/SW/火山/哈姆雷特/洞穴号）和哈姆雷特房间名，跨世界按航海门的方式存档切换（旺达） |
 | Boss 忠诚门槛（织影者、天体英雄） | 技能点门槛（常用 12 点）+ 两阵营互斥 |
-| 法术轮盘 spellbook / AOE 准星 | 自建轮盘 Screen + 移植 reticuleaoe 准星（温蒂、麦斯威尔）、切换键 + 光标施法键（麦斯威尔辅助）、物品栏左键施法右键切换（薇洛） |
+| 法术轮盘 spellbook / AOE 准星 | DST 式 HUD 轮盘控件（挂在 `controls` 下，不是 Screen）+ 移植 reticuleaoe / reticuleline 准星（麦斯威尔、薇洛、温蒂、薇诺娜遥控器、沃尔特沃比指令，2026-11-08） |
 | 角色专属制作筛选 | 角色专属制作栏，与薇克巴顿书本栏同一机制（旺达） |
 | `pethealthbar` | 自建徽章（温蒂） |
 | VFX 粒子 | 单机不支持，省略或换动画特效 |
@@ -105,7 +105,12 @@
 
 - **`Pickable:Pick`**：只有采摘者有 `inventory` 时才生成产物；`picksomething` 事件在 `GiveItem` 和 `canbepicked = false` **之前**推送。在事件回调里采摘别的植物、读写目标状态时注意此时目标仍是可采状态。没有 `inventory` 的随从调用 `Pick` 只会走植物自身的记录（再生、`onpickedfn`），不会产出物品。
 - **`Workable:WorkedBy`**：先扣 `workleft`，再推送 `working` 事件，最后才判断完成。在 `working` 回调里再对同一目标 `WorkedBy` 会嵌套执行，目标的完成回调执行两次（石头掉双倍并重复移除）。协助类逻辑用 `DoTaskInTime(0, ...)` 延后一帧，并重新检查目标有效、`workleft > 0`。
+- **沙堆 `sandhill` 的工作量是离散阶段**：SW/Hamlet `prefabs/sandhill.lua` 用 `{ "low", "med", "full" }[workleft + 1]` 选择动画，再生直接 `+1`。全局劳作倍率 `0.75/1.5` 会使瘦弱挖后 `1.25` 当场传入 nil 动画名，或使强壮挖后 `0.5` 在再生到 `1.5` 时出错。对沙堆绕过倍率和暴击，并在原 prefab `OnLoad` **之前**把旧档小数规范化到 `0/1/2`；只改后续挖掘不能修复已保存的小数。沃尔夫冈采用 `ceil` 后限界保留未挖完的一份沙子，复制数据表只改 `workleft`、保留时间和其他字段（2026-11-09，源码：SW/Hamlet 沙堆相同，四份 Workable/保存入口核对；Lua 5.1 隔离回归 486 项通过，未实机）。
 - **`Trader:AcceptGift`**：接收者没有 `inventory` 时，礼物在 `onaccept` 之前就被移除；`onaccept` 里再调用 `Eater:Eat` 会对已移除实体再走一次删除流程。
+- **`Trader` 的接收入口**：物品没有 `tradable` 组件时，只有 `trader.acceptnontradable = true` 才会出现「给予」动作（`InventoryItem:CollectUseActions`）。猪皮、牛毛、大理石甲、铥矿皇冠这类材料/装备要交给建筑或 NPC 必须打开它。Base 的 `test(inst, item)` 不传 giver，单机用 `GetPlayer()`；`AcceptGift` 每次只拿一个（`stackable:Get()`），要整组收取就在 `onaccept` 里再 `inventory:ConsumeByName` 剩余需要的数量（沃特鱼人王座 2026-11-08，源码）。
+- **`Hunger:SetMax` 会把当前值加满**；也没有 `burnratemodifiers`，只有标量 `burnrate`。中途改上限（DST `RefreshHungerParameters`）直接改 `hunger.max` 并夹住 `current`；存档时另存上限，在 `OnPreLoad` 里 `SetMax`（`SetPersistData` 先调 `OnPreLoad`，再逐个组件 `OnLoad`，最后实体 `OnLoad`）（沃特 2026-11-08，源码）。
+- **名字覆盖分两处读**：`GetDisplayName` 四份都读实体的 `inst.nameoverride`；`GetDescription` 在 Base/RoG 只读 `inspectable.nameoverride`，SW/Hamlet 先读实体的。临时改名（DST 鱼人王候选「皇室练习生」）两个字段都设，取消时都清（沃特 2026-11-08，源码）。
+- **prefab 后处理按名字挂**：`SpawnPrefab` 只跑 `Prefabs[name].modfns`。用 `Prefabs.merm.fn(Sim)` 派生新 prefab（DST 鱼人守卫）不会继承 `AddPrefabPostInit("merm")` 的改动，要对新名字再注册一次；大脑/状态图后处理按大脑、状态图名字挂，会共享（沃特 2026-11-08，源码）。
 - **`Rideable` 死亡监听**会调用 `SetSaddle(nil)`，按真实鞍实体处理（`ReturnToScene`、`FlingItem`）。用占位表做鞍时要拦截这条路径，并给占位鞍补 `GetBonusSpeedMult`、`GetBonusDamage`（骑乘时每帧调用）。
 - **死亡流程先掉落物品栏再判断复活**：依赖死亡时持有物的技能要在 `DropEverything` 前暂存物品。
 - **`Hunger:DoDelta` 对无敌实体直接返回**：四份源码（DLC0001 用本体那份）都先判断 `health.invincible`（以及 `is_teleporting`），除非第 3 个参数 `ignore_invincible` 为真。为了能被骑乘而把坐骑/宠物设成 `SetInvincible(true)` 后，进食和随时间消耗都不再改变饥饿值：小沃比喂多少都不长大。只给这个实体的 hunger 包一层 `DoDelta`，固定传 `ignore_invincible = true`（沃尔特 2026-11-05，源码）。
@@ -121,7 +126,12 @@
 - **`Reader:Read` 总是施法**：DST 沃特的 `aspiring_bookworm` 只翻阅（说 `ANNOUNCE_READ_BOOK` 台词、扣 1 次耐久、加减 `peruse_sanity`）。单机要包装 `Reader.Read` 按标志改走翻阅（沃特 2026-11-07，源码）。
 - 单机事件监听器收到的参数和联机版闭包假设可能不同：回调里显式捕获真实实例。
 - **DST 法术轮盘（spellbook + aoetargeting）的单机还原模式**（麦斯威尔 2026-11-07，实测）：开轮盘用 `Action({mount_enabled=true}, 2, true)` 即时动作（物品栏右键走组件 `CollectInventoryActions` 收集，DST 是 `USESPELLBOOK.pre_action_cb` 开轮盘）；施法用非即时动作 + `AddStategraphActionHandler("wilson", ActionHandler(动作, "book"))` 复用原版读书动画（58 帧处 `PerformBufferedAction`）；准星目标模式用移植的 `reticuleaoe` 美术（`ANIM_ORIENTATION.OnGroundFixed` 单机没有，用 `OnGround`；圆环旋转不变视觉等价）+ 每帧任务跟随 `TheInput:GetWorldPosition()` 并按施法距离钳制；左键施放、右键取消靠包装 `PlayerController.OnLeftClick/OnRightClick`（吞掉事件不落原逻辑，down 被吞后要吞对应 up）。
+- **DST 轮盘是 HUD 控件，不是 Screen**（2026-11-08，源码；用户反馈 Screen 版与联机手感不同）：DST `PlayerHud:OpenSpellWheel` 把 `widgets/wheel` 挂在 `controls.spellwheel`（屏幕中心、比例缩放），世界照常运行、玩家仍能走动；图标从中心 0.25 s 飞出，悬停外弹并在图标上方 50 处显示名称；关闭条件是右键世界且没有右键动作、ESC（先关轮盘、不暂停）、地图/暂停、物品失效或离手、死亡，执行后按 `closeonexecute` 关闭。单机写法见各模组 `main/spellwheel_dst.lua`（同一模板，按模组加前缀：`controls.<mod>_spellwheel`、全局 `<MOD>_SPELLWHEEL`，多模组互不冲突）。单机缺 `UIAnimButton`（用透明 `ImageButton` 当命中区）、`CancelMoveTo`（清 `uianim.pos_t` / `pos_whendone`）、`SetRadiusForRayTraces`（改方形命中区）；`PlayerController.OnLeftClick/OnRightClick` 在鼠标下有 HUD 时本来就跳过，只需吞掉“轮盘开着时点世界”。不跟物品走的轮盘（沃比）用 `notheld` + `canuse` 距离判断代替“物品在手”。
+- **物品栏右键在按下时就触发**：单机 `invslot` 在 RMB down 调 `UseItemFromInvTile`，Screen 版轮盘的“右键关闭”在同一次点击抬起时把刚开的轮盘关掉（麦斯威尔 2026-11-08，用户实测）。HUD 控件版不在右键抬起时关闭，也就没有这个问题。
+- **带 `pos` 的非即时动作会先走过去**：单机 `LocoMotor:PushAction` 对非即时动作有 target 就走向 target、只有 pos 就走向 pos。遥控施法（薇诺娜遥控器指定落点）不要把落点塞进 `BufferedAction` 的 `pos`，先存到物品上，再推无 pos 的动作播施法动画（薇诺娜 2026-11-08，源码）。
 - **`FrontEnd:PushScreen` 的焦点链会触发旧屏 `OnLoseFocus`**（麦斯威尔 2026-11-07，源码+实测）：`OnBecomeActive → default_focus:SetFocus() → SetFocusFromChild → ClearFocus` 逐级上抛，旧活动屏（HUD）的 `OnLoseFocus` 在新屏入栈过程中就被调用（widget 级失焦，与 `ClearScreens` 里的前端栈 `OnLoseFocus` 是两回事）。在 HUD 失焦钩子里关闭刚推入的自建 Screen 会当场自毁。
+- **`ComplexProjectile` 推不动掉在地上的物品**：四份单机源码的 `CalculateTrajectory` 都算世界坐标 x/z 速度，`OnUpdate` 每帧 `Physics:SetMotorVel`。原版只用在专门生成的抛射体上（`spat_bomb`、灭火器炮弹，从不转向，也带 `locomotor`）。把物品栏物品 `DropItem` 后再 `Launch`（DST 蚊子炸弹的 TOSS），实测物品一直停在出手高度、`velocity.y` 无限变负、永不命中，加 `locomotor` 也不动；Base/RoG/SW 的命中判定还要求 `y <= 0`（哈姆雷特 0.25）。做法：`Launch` 后 `StopUpdatingComponent(projectile)`，用组件算出的世界速度每帧（`DoPeriodicTask(FRAMES)`）`Transform:SetPosition` 积分重力，落地调组件自己的 `Hit()`，并加超时兜底（沃特 2026-11-08，实测 run8b–e）。
+- **哈姆雷特的 `COLLISION` 表没有 `WORLD`**（拆成 `WORLD_01` / `WORLD_02`，还多了 `INTWALL`）：`CollidesWith(COLLISION.WORLD)` 会以 `bad self (number expected, got nil)` 报错。写 `COLLISION.WORLD or COLLISION.WORLD_01 or COLLISION.GROUND`（沃特 2026-11-08，实测崩溃）。
 - `EntityScript:DoTaskInTime(time, fn, ...)` 回调参数是 `(inst, ...)`。
 
 ### 状态图与表现
@@ -159,6 +169,7 @@
 - `FindEntities` 不要无标签全量扫描：至少带上排除标签。
 - `FindEntity(inst, radius, fn, musttags, canttags, mustoneoftags)`：四份单机源码都支持第 6 个参数（沃特 2026-11-07，源码）。
 - **单机 `merm` 不能雇佣**：没有 `trader`/`follower`，`mermbrain` 也没有 leader 节点。给 prefab 补组件，在 `AddBrainPostInit` 里往 `self.bt.root.children` 插节点并给新节点设 `.parent`；插在 `ShouldGoHome` 之前，否则随从会回家。`WhileNode` 实际是 `ParallelNode{ConditionNode(cond, name), node}`，按名字找位置要看 `children[1].name`。`behaviours/follow` 等文件在回调里 `require`（原脑不加载它们）。跟随时还要包装 `sleeper.sleeptestfn`，否则白天睡觉（沃特 2026-11-07，源码）。
+- **单机鱼人白天睡觉**（`ShouldSleep = GetClock():IsDay()`），DST 鱼人不睡。任何要鱼人白天主动做事的流程（鱼人王候选走向王座、守卫巡逻）都要包装 `sleeper.sleeptestfn` / `waketestfn`，并在进入该流程时 `WakeUp()`；派生的守卫直接设永不睡（沃特 2026-11-08，源码）。
 - **生物对 `merm` 的态度和 DST 不同**：单机青蛙打任何有物品栏的目标（含沃特），DST 排除 `merm`；单机猪人只打 `monster`、谁喂都跟，DST 猪人敌视 `merm` 且不接受 `merm` 的雇佣。单机 `combat.targetfn` 是普通字段，猪人变身会再调 `SetRetargetFunction`，两处一起包装（沃特 2026-11-07，源码）。
 - **随从的 `death` 回调里可能已经没有 leader**：单机 `PushEvent` 按监听实体 `pairs` 遍历，Leader 自己的 `death` 监听（`RemoveFollower`）可能先跑。死亡时要用 leader 的逻辑（暗影复苏之类），在 `Follower:SetLeader` 时把 leader 记到实例上，死亡后不清除（沃特 2026-11-07，实测）。
 - `TUNING.RESEARCH_MACHINE_DIST` 单机只有 4：`Builder:EvaluateTechTrees` 每帧只找 4 格内的 `prototyper`（沃特 2026-11-07，实测）。
@@ -167,6 +178,7 @@
 
 - 跨洞穴、跨世界的进度用 `SaveGameIndex` 区分：`GetCurrentMode`、`GetSlotWorld`、`GetCurrentCaveNum`、`GetCurrentCaveLevel`（洞穴号是第二个参数，易写反）。
 - **进出洞穴、火山会带走全部随从**：`SaveIndex:GetSaveFollowers`（只在本体 `saveindex.lua`）对 `leader.followers` 里每个活着的随从 `GetPersistData` 后 `Remove()`，到新世界再生成并 `SetLeader`。如果宠物另外由角色自己的 `OnSave` / `OnLoad` 存档重建（`persists = false` 的跟宠常这么做），每走一次洞穴就多一只。包装 `GetSaveFollowers`：调用前把角色自己管理的宠物（和正在骑的坐骑）临时移出 `followers` 表、调用后放回；顺手合并之前已经多出来的副本（转移容器物品后移除）（沃尔特 2026-11-05，源码）。
+- **SW/Hamlet 随从水上跟随三件套**：`amphibious` 标签（否则 `driver` 上船时 `HibernateLandFollowers` 清掉 `follower.leader`）、`follower:SetFollowExitDestinations({EXIT_DESTINATION.LAND, EXIT_DESTINATION.WATER})`（默认只有 LAND，主人在水上不牵引）、两栖物理 `MakeAmphibiousGhostPhysics` / 对应版本。Base/RoG 没有这些 API，要先探测。原版 `entitysleep` 牵引只在距离 > 40 时传送，地图边缘回绕、跨世界读档后要自己补距离检查（温蒂 2026-11-11，源码；未实机）。
 - 哈姆雷特同一时间只加载一个室内：跨世界存档前先离开当前房间（同原版 `TravelBetweenWorlds`）；室内内的传送不能当成「出到室外」处理，否则掉进虚空黑屏。
 - 组件尽早 `AddComponent`，`OnLoad` 兼容旧字段名，读档后延迟一帧再应用技能效果。
 

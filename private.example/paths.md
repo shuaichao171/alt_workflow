@@ -17,6 +17,18 @@
 | `CLAUDE_PROFILE_BACKUP` | Claude Desktop 旧配置备份目录（可选，含登录态，勿公开） | `<目录>` |
 | `REA_HOME` | REA（rea-agents）逆向工具本地源码（可选，逆向分析技能用） | `<目录>` |
 
+## 安卓
+
+| 占位名 | 说明 | 路径 |
+| --- | --- | --- |
+| `ANDROID_SDK_DIR` | Android SDK 根目录 | `<SDK 目录>` |
+| `ANDROID_EMULATOR_EXE` | Android Emulator | `<ANDROID_SDK_DIR>\emulator\emulator.exe` |
+| `ANDROID_ADB` | adb（与 SDK platform-tools 同版本） | `<ANDROID_SDK_DIR>\platform-tools\adb.exe` |
+| `ANDROID_AVD_NAME` | 默认 AVD 名（`emulator -list-avds` 查看） | `<AVD 名>` |
+| `ANDROID_AVD_DIR` | 该 AVD 数据目录 | `<用户目录>\.android\avd\<AVD 名>.avd` |
+| `ANDROID_REAL_DEVICE_SERIAL` | 常连真机的序列号（可选） | `<序列号>` |
+| `LDPLAYER_DIR` | 雷电模拟器目录（可选，仅用于排查冲突） | `<安装目录>` |
+
 ## 《饥荒》
 
 | 占位名 | 说明 | 路径 |

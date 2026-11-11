@@ -20,7 +20,10 @@
 - 单机版 RemoteStorage 写入并分享文件时，旧接口可能返回 FileNotFound 或 Busy，这时改用唯一远程文件名重试一次。分享在提交之前，重试不会重复发布。提交回调异常可能已提交，必须查询结果后判断。
   - 实测（2026-11-07）：连续上传三个单机模组时，第三个对固定文件名 `mod_publish_data_file.zip` 的 FileShare 一直返回 Busy（偶尔是 NotLoggedOn），重启 Steam、等几分钟都没用。改用唯一文件名后一次就成功了。
   - 同一次上传里，`CommitPublishedFileUpdate` 回调被标记为失败，但二次检查确认已经提交成功。所以回调失败不等于没提交，以回查结果为准。
+  - 单机只改可见性（私有→公开，2026-11-08 沃特）：工具要求至少开一个更新项，只能连同不变的标题简介一起提交；内容没变时工坊更新时间不推进，工具报“未能确认生效”并退出 1，但 `list` 回查 `visibility` 已经变成 0。这种情况用 `list` 核对可见性，不要重复提交。
   - 遇到不能换名重试的失败时，先看 `job.result.json` 的 `submitted`：为 false 才说明还没提交。
+  - 实测（2026-11-09，连续更新五个单机模组）：20 MB 的包在 FileShare 返回 `Timeout`。查 `Steam/logs/cloud_log.txt` 的 `[AppID 245850]` 行，原因是 UGC 的 HTTP 上传（`steamugcquincy.blob.core.windows.net`）60 秒超时，当时上行约 210 KB/s。之后 Steam 会自动重新同步这个文件，同步期间所有上传的 `FileWrite` 都直接失败（看起来像配额满了，其实不是）。处理方法：确认 `submitted=false`，用 `inspect` 确认工坊版本没变，等 cloud_log 出现 `Upload complete` 后再逐个重试，不要并发或连续重试；这次重试后两个都成功了。
+  - 从 Git Bash 调 `powershell`（5.x）运行 `workshop.ps1` 会被执行策略拦截；用 pwsh 7 运行。
 
 ## 文件规则
 
