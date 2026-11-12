@@ -12,6 +12,9 @@
 | `DST_MOD_TOOLS_DIR` | 《饥荒》动画贴图打包工具目录 | `<安装目录>` |
 | `OPENSPINE_DIR` | OpenSpine | `<安装目录>` |
 | `POWERSHELL_DIR` | PowerShell | `<安装目录>` |
+| `NODE_EXE` | Node.js 可执行文件（Chrome CDP 技能建议 22.4+） | `<node.exe 路径>` |
+| `CHROME_EXE` | Google Chrome 可执行文件（现有会话连接要求 144+） | `<chrome.exe 路径>` |
+| `CHROME_USER_DATA_DIR` | Chrome 数据根目录（包含 DevToolsActivePort，不是 Default 子目录） | `<数据根目录>` |
 | `BLENDER_DIR` | Blender | `<安装目录>` |
 | `CLAUDE_DESKTOP_DIR` | Claude Desktop 安装目录（可选） | `<安装目录>` |
 | `CLAUDE_PROFILE_BACKUP` | Claude Desktop 旧配置备份目录（可选，含登录态，勿公开） | `<目录>` |

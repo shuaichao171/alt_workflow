@@ -5,6 +5,7 @@
 | 技能 | 何时使用 | 文件 |
 | --- | --- | --- |
 | 生成/编辑位图 | 需要生成、修改图片，制作贴图、图标、插画、透明素材 | [image-gen/SKILL.md](image-gen/SKILL.md) |
+| Chrome CDP 直连 | 在 Windows 上操作用户的真实 Chrome、复用现有标签页或登录态，或用户明确要求 CDP／不使用 computer-use 或 MCP server | [chrome-cdp/SKILL.md](chrome-cdp/SKILL.md) |
 | 饥荒工坊上传 | 用户明确要求上传、发布或更新《饥荒》/《饥荒联机版》工坊物品，或需要只读查询本人已发布列表/ID（授权规则见 rules/40） | [steam-workshop-upload/SKILL.md](steam-workshop-upload/SKILL.md) |
 | 《饥荒》开发 | 制作《饥荒》/《饥荒联机版》相关内容：模组、动作、贴图、调试日志、无头测试；把联机版内容移植到单机版，或修复、测试单机移植模组（内含 48 个模组专项技能、动作制作流程与联机→单机移植流程） | [dst-modding/SKILL.md](dst-modding/SKILL.md) |
 | 《饥荒》二进制资产 | 需要解析、修改或转换《饥荒》动画/贴图/音频/声音工程二进制文件（anim.bin、build.bin、.tex、.fsb、.fev），或 Klei 哈希反查、碰撞重算、图集打包、资源名提取 | [dst-asset-tools/SKILL.md](dst-asset-tools/SKILL.md) |

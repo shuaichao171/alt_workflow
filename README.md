@@ -64,6 +64,7 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 ## 扩展
 
 - **技能**：复制 `skills/_template/`，在 `skills/INDEX.md` 登记。
+- **Chrome CDP 直连**：见 [skills/chrome-cdp/SKILL.md](skills/chrome-cdp/SKILL.md)。用 Node.js 原生 WebSocket 连接已开启远程调试的真实 Chrome，不依赖 computer-use 或 MCP server；配套脚本支持只读检查、临时页验证和执行任务脚本，动态发现端口，完成后断开连接并清理临时页。
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
 - Python 脚本使用 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
 - **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
