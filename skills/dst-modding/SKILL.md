@@ -41,6 +41,7 @@
 - 单分片离线回归直接用该技能的 `scripts/dst_headless_run.py`（快照 → 独立集群 → 行为脚本 → 判定 → 清理），只需写行为脚本；改动后先跑 `mod-skills/dst-debugging-testing/scripts/dst_lua_check.py` 做语法和组件方法静态检查。
 - 通用流程见 [mod-skills/dst-dedicated-server-testing/references/headless-workflow.md](mod-skills/dst-dedicated-server-testing/references/headless-workflow.md)，覆盖隔离环境、场景驱动、结果判定、修复复测与进程清理。具体用例由当前模组定义。
 - 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版没有专服，不套用联机版专服命令，改用游戏内自动测试模组，见 [ds-porting/06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
+- Windows 单机测试需要减少声音干扰时，可按 [06 第 5 节](ds-porting/06-测试与存档安全.md#5-单机测试可选静音windows) 接入按应用静音和原状态恢复。
 
 ## 饥荒动作制作
 
