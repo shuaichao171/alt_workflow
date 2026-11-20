@@ -34,13 +34,14 @@
 
 - 只有用户明确要求上传/发布，或需要只读查询工坊时，才使用 [../steam-workshop-upload/SKILL.md](../steam-workshop-upload/SKILL.md)；授权条件以 [rules/40-workshop-upload.md](../../rules/40-workshop-upload.md) 为准。仅开发模组时不加载上传技能，也不追加发布步骤。
 
-## 无头测试
+## 无头测试与隔离客户端测试
 
-- 用户要求《饥荒联机版》无头测试、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。
+- 用户要求《饥荒联机版》无头测试、客户端测试、UI/贴图/动画验证、专服验证或自动运行游戏回归时，使用 [mod-skills/dst-dedicated-server-testing/SKILL.md](mod-skills/dst-dedicated-server-testing/SKILL.md)。
 - 修改影响引擎运行的逻辑（如组件、动作、AI、状态机、碰撞、存档、世界生成）时，按该技能选择相关无头用例；执行前完整阅读其通用流程。纯文档、静态资源修改按实际需要验证。
 - 单分片离线回归直接用该技能的 `scripts/dst_headless_run.py`（快照 → 独立集群 → 行为脚本 → 判定 → 清理），只需写行为脚本；改动后先跑 `mod-skills/dst-debugging-testing/scripts/dst_lua_check.py` 做语法和组件方法静态检查。
 - 通用流程见 [mod-skills/dst-dedicated-server-testing/references/headless-workflow.md](mod-skills/dst-dedicated-server-testing/references/headless-workflow.md)，覆盖隔离环境、场景驱动、结果判定、修复复测与进程清理。具体用例由当前模组定义。
-- 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；涉及这些行为时追加相应的客户端验证，并明确未执行项。《饥荒》单机版没有专服，不套用联机版专服命令，改用游戏内自动测试模组，见 [ds-porting/06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
+- 纯客户端模组、UI、客户端↔服务端 RPC、物品栏/制作栏贴图、手持贴图、地面动画与贴地，用该技能的 `scripts/dst_client_run.py` 做隔离客户端测试：在无头专服之外以独立存储启动图形客户端，自动进服、跑两端行为脚本、断言并截图，结束清理，不改本机存档、设置和模组启用列表。执行前完整读 [mod-skills/dst-dedicated-server-testing/references/client-workflow.md](mod-skills/dst-dedicated-server-testing/references/client-workflow.md)；截图观感交给人工或识图子代理 `vision` 复核。运行会开一个游戏窗口，可与你正在玩的客户端并存（不激活、置底、归还焦点、低优先级），需 Steam 已登录。
+- 无头测试不能验收贴图显示、界面、真实客户端预测或网络同步；这些用隔离客户端测试补测，多人与真实网络延迟仍需手工客户端验证，并明确未执行项。《饥荒》单机版没有专服，不套用联机版专服命令，改用游戏内自动测试模组，见 [ds-porting/06-测试与存档安全](ds-porting/06-测试与存档安全.md)。
 - Windows 单机测试需要减少声音干扰时，可按 [06 第 5 节](ds-porting/06-测试与存档安全.md#5-单机测试可选静音windows) 接入按应用静音和原状态恢复。
 
 ## 饥荒动作制作

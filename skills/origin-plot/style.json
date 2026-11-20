@@ -1,0 +1,64 @@
+{
+  "_说明": "Origin 画图默认样式（学位论文/期刊通用）。作图描述文件里的 style 字段只需写要覆盖的键，其余沿用本文件。2026-11-15 实测于 Origin 2021。",
+
+  "font": {
+    "cn": "SimSun",
+    "en": "Times New Roman"
+  },
+  "size": {
+    "axis_title": 26,
+    "tick_label": 22,
+    "legend": 22
+  },
+
+  "palette": ["#C0392B", "#1F4E9A", "#2E8B57", "#E67E22", "#7B3F99", "#333333"],
+  "_palette说明": "依次为：砖红、深蓝、墨绿、橙、紫、深灰。同一图内按系列顺序取色；需要黑白打印时把 palette 改成全 #000000 并依靠 symbols/dash 区分。",
+
+  "symbols": [2, 1, 3, 5, 4, 8],
+  "_symbols说明": "Origin 符号编号：1 方块，2 圆，3 上三角，4 下三角，5 菱形，8 星形。按系列顺序取用，实心填充为同色。",
+  "symbol_size": 9,
+
+  "line": {
+    "connect": "spline",
+    "width": 1000,
+    "dash": [0, 0, 0, 0, 0, 0]
+  },
+  "_line说明": "connect：spline 样条（过每个数据点，LabTalk set -l 9）| straight 直线（-l 1）| bspline B 样条（不过数据点，-l 8）| none。width 为 set -w 的值（1000 ≈ 细实线）。dash 按系列顺序给线型：0 实线，1 划线，2 点线，3 点划线（set -d）。",
+
+  "plot_type": "line_symbol",
+  "_plot_type说明": "line_symbol 点线图 | line 纯线 | scatter 散点 | column 柱状。",
+
+  "axes": {
+    "frame": true,
+    "ticks": "in",
+    "thickness": 1.5,
+    "show_top_right_labels": false,
+    "top_right_ticks": false,
+    "major_intervals": 5,
+    "pad": 0.03
+  },
+  "_axes说明": "frame=true：四边封闭；上、右轴默认只有边框线，不画刻度（top_right_ticks=false）、不显示数值（show_top_right_labels=false）。ticks：in 主次刻度朝内（layer.?.ticks=5）| out 朝外（10）| none 不画。major_intervals：未指定 x_range/y_range 时，脚本按本图全部系列的数据范围自算整齐步长（1/2/5×10^n），使主刻度间隔数尽量接近该值（即约 6 个刻度标签），上下限取步长整数倍；不用 Origin 自动步长，因为它只按第一条曲线定步长，多曲线时刻度会很密。pad：数据两端预留的空白比例，避免数据点压在边框上。",
+
+  "legend": {
+    "show": true,
+    "border": true,
+    "position": "tl",
+    "fallback": ["tr"],
+    "avoid": true
+  },
+  "_legend说明": "border=true 为黑色细线外框（legend.background=1）。position 为首选位置，默认 tl 左上（可选 tr 右上 | bl 左下 | br 右下），放在图框内侧。avoid=true 时按顺序避让：首选位置压线（数据点按符号半径、连线按真实穿过图例框判断）就依次试 fallback 里的位置（默认 tr 右上）；全都压线才回到首选位置并扩坐标范围——优先扩纵轴（图例在上方就抬高上限），纵轴范围是手工指定的才改扩横轴；只扩到曲线刚好不碰图例再留约 2% 的空，步长不变，边界取到 步长/10 的整数倍；x_range、y_range 都指定时只在日志里提示。fallback 设为 [] 则固定在首选位置。",
+
+  "unit_style": "slash",
+  "_unit_style说明": "仅为提醒：轴标题按“物理量/单位”书写（GB/T 3102，如“最大推力/N”）；若学校要求“物理量（单位）”，直接在标题里写括号即可。",
+
+  "export": {
+    "png_width": 1400,
+    "save_opju": true
+  },
+
+  "grid": {
+    "cols": 2,
+    "label_font_size": 40
+  },
+  "_grid说明": "多 panel 时可选输出拼版预览图（PIL 拼接，子图标注写在每个 panel 下方）。论文排版时通常用单独的 panel 图，由 Word 表格排版。"
+}

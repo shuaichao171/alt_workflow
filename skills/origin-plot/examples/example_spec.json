@@ -1,0 +1,26 @@
+{
+  "_说明": "示例作图描述（虚构数据）。运行：python skills/origin-plot/scripts/origin_plot.py skills/origin-plot/examples/example_spec.json --out <目标项目>/_ai_work/origin_demo --grid",
+  "name": "示例图",
+  "panels": [
+    {
+      "name": "a",
+      "label": "（a）推力对比",
+      "x_title": "频率/Hz",
+      "y_title": "推力/N",
+      "x_range": [0.1, 0.9, 0.1],
+      "series": [
+        {"label": "试验", "x": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], "y": [0.27, 0.40, 0.47, 0.52, 0.55, 0.53, 0.50]},
+        {"label": "仿真", "x": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], "y": [0.30, 0.42, 0.50, 0.56, 0.58, 0.57, 0.52], "dash": 1}
+      ]
+    },
+    {
+      "name": "b",
+      "label": "（b）效率",
+      "x_title": "频率/Hz",
+      "y_title": "效率/%",
+      "series": [
+        {"label": "f = 0.4 Hz", "x": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], "y": [12.1, 18.4, 22.9, 25.0, 24.2, 21.7, 18.3]}
+      ]
+    }
+  ]
+}

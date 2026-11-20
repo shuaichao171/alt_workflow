@@ -64,10 +64,12 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 ## 扩展
 
 - **技能**：复制 `skills/_template/`，在 `skills/INDEX.md` 登记。
+- **Windows 应用跨桌面启动**：见 [skills/windows-app-launch/SKILL.md](skills/windows-app-launch/SKILL.md)。仅在用户明确要求时，应用窗口出现后立即移至另一个虚拟桌面；支持指定程序路径、启动器换进程和后续新窗口，记录耗时及桌面 ID，不自动切换当前桌面。
 - **Chrome CDP 直连**：见 [skills/chrome-cdp/SKILL.md](skills/chrome-cdp/SKILL.md)。用 Node.js 原生 WebSocket 连接已开启远程调试的真实 Chrome，不依赖 computer-use 或 MCP server；配套脚本支持只读检查、临时页验证和执行任务脚本，动态发现端口，完成后断开连接并清理临时页。
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
 - Python 脚本使用 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
 - **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
+- **后台任务与日志监视**：规则见 [rules/50-background-tasks.md](rules/50-background-tasks.md)；配套 `scripts/watch_log.py`，给 Monitor / 后台命令用的日志监视器，遇到结束标记、被测进程退出、标记文件出现或到时就自己结束，避免回合结束后再收到已处理过的通知。自测：`python -I scripts/tests/test_watch_log.py`。
 - **饥荒工坊上传**：技能在 `skills/steam-workshop-upload/`，配套 `scripts/workshop.ps1`（精简 C# 核心 + Klei 的 32 位 `steam_api.dll`，需要 .NET 10 SDK 与 x86 运行时）。授权规则只在 [rules/40-workshop-upload.md](rules/40-workshop-upload.md) 维护；任务配置、快照和构建产物放在目标项目的 `_ai_work/workshop/`。
 
 ## 公开前检查

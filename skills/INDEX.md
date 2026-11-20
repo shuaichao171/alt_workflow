@@ -6,12 +6,14 @@
 | --- | --- | --- |
 | 生成/编辑位图 | 需要生成、修改图片，制作贴图、图标、插画、透明素材 | [image-gen/SKILL.md](image-gen/SKILL.md) |
 | Chrome CDP 直连 | 在 Windows 上操作用户的真实 Chrome、复用现有标签页或登录态，或用户明确要求 CDP／不使用 computer-use 或 MCP server | [chrome-cdp/SKILL.md](chrome-cdp/SKILL.md) |
+| Windows 应用跨桌面启动 | 用户明确要求在另一个虚拟桌面启动应用，或启动后立即移走窗口；普通启动不自动移动 | [windows-app-launch/SKILL.md](windows-app-launch/SKILL.md) |
 | 饥荒工坊上传 | 用户明确要求上传、发布或更新《饥荒》/《饥荒联机版》工坊物品，或需要只读查询本人已发布列表/ID（授权规则见 rules/40） | [steam-workshop-upload/SKILL.md](steam-workshop-upload/SKILL.md) |
-| 《饥荒》开发 | 制作《饥荒》/《饥荒联机版》相关内容：模组、动作、贴图、调试日志、无头测试；把联机版内容移植到单机版，或修复、测试单机移植模组（内含 48 个模组专项技能、动作制作流程与联机→单机移植流程） | [dst-modding/SKILL.md](dst-modding/SKILL.md) |
+| 《饥荒》开发 | 制作《饥荒》/《饥荒联机版》相关内容：模组、动作、贴图、调试日志、无头测试、隔离客户端测试（客户端模组/UI/RPC/贴图动画截图）；把联机版内容移植到单机版，或修复、测试单机移植模组（内含 48 个模组专项技能、动作制作流程与联机→单机移植流程） | [dst-modding/SKILL.md](dst-modding/SKILL.md) |
 | 《饥荒》二进制资产 | 需要解析、修改或转换《饥荒》动画/贴图/音频/声音工程二进制文件（anim.bin、build.bin、.tex、.fsb、.fev），或 Klei 哈希反查、碰撞重算、图集打包、资源名提取 | [dst-asset-tools/SKILL.md](dst-asset-tools/SKILL.md) |
 | 服务器运维 | 在远程服务器上部署/更新服务、迁移容器与账号数据、备份回滚、改 Nginx/宝塔配置、只读巡检与排障 | [server-ops/SKILL.md](server-ops/SKILL.md) |
 | 安卓模拟器 | 需要在安卓环境安装/运行 APK、adb 调试、抓 logcat、截图、root 读写应用数据或 frida 动态分析，且用户没指定真机或雷电模拟器（默认用本机 Android Studio AVD） | [android-emulator/SKILL.md](android-emulator/SKILL.md) |
 | 逆向分析 | 任务结论依赖无源码的已发布产物：反编译/分析二进制、安装包（APK/IPA/DMG/MSIX）、Electron/ASAR/打包 JS、.NET 程序集、固件、HAR 抓包，或已发布版本行为对比；用前检测本会话有无 rea 工具（MCP 优先，CLI 回退）。**有完整源码的普通分析不用** | [rea/SKILL.md](rea/SKILL.md) |
+| Origin 画图 | 需要用 Origin 画科研/论文曲线图（统一默认样式批量出图、重绘旧图），或从 .opju/.opj 导出数据和图，或抽取 PPT/Word 内嵌的 Origin 图及数据 | [origin-plot/SKILL.md](origin-plot/SKILL.md) |
 
 > 新增技能：复制 [_template/](_template/) 为新目录，填写 `SKILL.md`，然后在上表加一行。
 > 「何时使用」写清触发条件，AI 只靠这一列判断要不要读该技能。

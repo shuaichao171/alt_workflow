@@ -19,6 +19,7 @@
 | `CLAUDE_DESKTOP_DIR` | Claude Desktop 安装目录（可选） | `<安装目录>` |
 | `CLAUDE_PROFILE_BACKUP` | Claude Desktop 旧配置备份目录（可选，含登录态，勿公开） | `<目录>` |
 | `REA_HOME` | REA（rea-agents）逆向工具本地源码（可选，逆向分析技能用） | `<目录>` |
+| `ORIGIN_DIR` | Origin 2021（COM ProgID `Origin.Application`；origin-plot 技能用） | `<安装目录>` |
 
 ## 安卓
 

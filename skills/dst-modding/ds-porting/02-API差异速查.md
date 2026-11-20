@@ -100,6 +100,8 @@
 - `PropagateFire` 阻止蔓延 → `propagator:StopSpreading` 并拦截 `StartSpreading`。
 - `builder_tag` 单机不原生支持 → 钩 `Builder:KnowsRecipe` / `CanBuild` / `DoBuild`。只钩这些挡不住制作栏的灰色提示，等级还要加 `LOST` 或包装提示函数（见 [03](03-技能树配方与界面.md) 4.4）。
 - 哈姆雷特 `ACTIONS.PICKUP` 会处理商店货架（`shelfer`）上的商品：任何自动拾取逻辑都要跳过 `shelfer`。
+- **可部署物品**（机器人扫描仪 2026-11-16，源码+RoG 实测）：单机只有带 `deployable` 组件的物品在拿到光标上时才显示放置预览、右键地面出现 `DEPLOY`（`CollectPointActions` 只认 `right`）；没有该组件就只能左键丢在地上。预览实体名固定为 `<物品 prefab>_placer`（或 `deployable.placer`），要用 `MakePlacer` 一并注册；`MakePlacer` 第 5 个参数之后四份签名不同，只传前 4 个。`CanDeploy(pt)` 调 `test(inst, pt)` 不带 deployer，`Deploy` 才调 `test(inst, pt, deployer, rot)`；Base/RoG 的 `CanDeploy` 在 `test` 返回 false 时还会退回默认测试，SW/Hamlet 不会。
+- **DST 光照半径不能照搬**（机器人照明电路 2026-11-16，源码 + 用户反馈）：DST 新版 WX 照明电路 `(1.25n)^0.8` 一块约 1.2 半径，单机下几乎看不见（单机火把 2、WX 过载 3、矿工帽 2.5）。改用 DST 旧版参数（首块 3.5、每块 +1.5）后用户认可前需实机确认观感。
 
 ### 组件事件时序
 
@@ -140,7 +142,8 @@
 - **挂在玩家身上的特效**：单机不把父实体朝向传给子实体，特效要每帧复制玩家朝向，否则朝向不同时左右反转。
 - 联机版独有的动画（`useitem_pre/pst`、`death_reverse` 等）在单机 bank 里不存在：用实际 bank 列表核对，缺的从联机版导出或换现有动画。
 - **HUD 右上布局**：单机（含 SW/HAM）`controls.sidepanel` 在右缘 -80、`status` 在 (0,-110)，徽章 stomach(-40,20)/heart(40,20)/brain(0,-40)。两边这套坐标一致，DST SecondaryStatusDisplays 的 UpgradeModulesDisplay 坐标可直接照搬。**注意 `column1` 的符号**：`IsGameInstance(Instances.Player1)` 为真（所有普通对局）时是 **+60**，-60 只是分屏 2P 的镜像值。正确位置为 status 相对 (60,-133)，七格时 (60,-145)：心形图标正下方、电池本体贴右缘，电线伸出屏幕外，电路条向左展开（WX-78 2026-11-07 实机截图确认）。误用 -60 时电池落在脑图标左下，用户会指出与 DST 不符。早先“放徽章左侧”和“(-60,-133)”两种做法都已作废。
-- **单机 Widget 无 `HookCallback`/`UnhookCallback`/`HasCallback`，AnimState 无 `GetBuild`**（DST-only）：widget 内“动画完成后做一次”用本地 helper 包 `inst:ListenForEvent("animover", fn)` + `RemoveEventCallback`，换钩前先解旧钩；GetBuild 用 prefab 已知 build 名常量替代（WX-78 托盘 widget 2026-11-06 实机三连崩后修复）。
+- **单机 Widget 无 `UnhookCallback`/`HasCallback`，AnimState 无 `GetBuild`**（DST-only）：widget 内“动画完成后做一次”用本地 helper 包 `inst:ListenForEvent("animover", fn)` + `RemoveEventCallback`，换钩前先解旧钩；GetBuild 用 prefab 已知 build 名常量替代（WX-78 托盘 widget 2026-11-06 实机三连崩后修复）。更正：`Widget:HookCallback` 其实有（本体 `widgets/widget.lua:298`，三个 DLC 都不覆盖该文件），解钩自己写：`RemoveEventCallback(event, widget.callbacks[event])` 后置 nil（机器人护盾 HUD 2026-11-16，源码+RoG 实测）。
+- **DST 护盾/状态特效的动画包可直接复制**：`wx78_shield_fx.zip`、`status_meter_wx_shield.zip` 原样放进 mod `anim/` 单机能正常渲染；单机脚本里找不到 `AnimState:SetSymbolMultColour` 的用例，按符号染色要先判 `AnimState.SetSymbolMultColour ~= nil`，否则退回整体 `SetMultColour`（机器人护盾 2026-11-16，RoG 实测）。
 - **`SetParent` + `FollowSymbol` 组合不等效 DST**：单机 SetParent 把子实体钉在父实体原点并破坏 Follower 的符号跟随（头顶特效实测画在脚部 dy≈0.5）；正确做法是 FollowSymbol 单独用（torch 火焰范式，引擎按 GUID 逐帧跟随），父实体清理用显式 `ListenForEvent("onremove")`。另：单机 Follower 只改渲染位置不改实体 transform——位置探针量 transform 会误判，判定以截图为准（WX-78 眩晕 FX 2026-11-06 实机+截图）。
 - **locomote 事件无 `data.dir`**（DST 添加）：单机判“玩家想移动”用 `locomotor:WantsToMoveForward()`。测试模拟按住方向键必须每帧调 `RunInDirection(angle)`（PlayerController 同款），裸设 `wantstomoveforward` 会被 locomotor 自身更新清掉（WX-78 拆装循环状态 2026-11-06 实机）。
 - **sg 事件是缓冲式**：`EntityScript:PushEvent` 经 `IsListeningForEvent` 门控后入 `sg.bufferedevents`（附 `data.state`=当前状态名），下一帧 `HandleEvents` 才派发；push 后同帧改组件状态会在派发时读到新值，先改后 push 则读旧值（WX-78 2026-11-06）。
@@ -150,6 +153,8 @@
 - **`Talker:IgnoreAll()`**：单机是一个布尔开关（无来源参数），`StopIgnoringAll` 会清掉别人设的忽略；只在 `talker.ignoring` 为假时接管并自己记账。
 - 动画事件缺失时，在 `timeout` / `onupdate` 里补逻辑兑底。注意：纯 `onupdate` 状态在单机调度器下可能只被唤醒几次且 `dt=0`；逐帧效果优先用 timeline `TimeEvent`（薇格弗德 2026-10-29）。
 - **单机 instant 动作绕过 SG**：`Action.instant=true` 时 `EntityScript:PushBufferedAction` 直接 `Do()`，不查 ActionHandler，动画状态不会进。要动画的动作用非 instant（无 target/pos 时会 `sg:StartAction` 走 ActionHandler）；必须 instant 的在 action fn 里显式 `GoToState`（薇格弗德 2026-10-29）。
+- **地图图标不自带动作入口**：单机 `mapscreen` 不收集 SceneAction。按 DST 的地图专用动作分开实现 LMB/RMB 提示与选择模式，原版 `hoverer` 的右键文字跟随鼠标，`wx78_map_marker` 承担图标悬停反馈；不要用“空白地图右键全部派遣”替代原动作链。要动画的远程动作用**无 target/pos 的非 instant BufferedAction**，把已验证实体放在专用字段，SG 执行帧再次验证；带 target 会先寻路，instant 则完全跳过 SG。参考 `wx78/main/backupbody_mapcontrols.lua`、`backupbody_states.lua`、`scripts/wx78_mapactions.lua`（2026-11-17，DST build 762172 / 单机四份源码核对；RoG/重载/SW/Hamlet 原生回归 150 项通过，地图/关机/开机截图复核通过）。
+- **地图坐标的 TMI 兼容回退**：不要写入通用 `GetWorldMousePosition`；模组使用自定义前缀方法，每次调用动态判断现有接口，存在就委托，不存在才按 TMI 的平移/缩放/朝向公式换算。原版 `MapWidget:OnUpdate` 以 0.25 鼠标差直接调原生 MiniMap:Offset，TMI 改成 0.2 并走 Widget:Offset；包装后按本帧 Offset 调用序号判断是否已记账，避免拖图重复累计。缩放后偏移乘旧 zoom / 新 zoom，重新显示地图清零。参考 `wortox/scripts/wortox_mapcoordinates.lua`、`main/map_soulhop.lua`（2026-11-17，Base/RoG/SW/Hamlet 源码、TMI 源码；32 项离线断言覆盖两种加载顺序；RoG/重载/SW/Hamlet 原生回归 170 项通过，含恢复原版 Widget 方法并移除 TMI 接口的回退分支，8 张地图截图留档）。
 - **状态图实例无 `HasState` / `states`**：单机 `StateGraphInstance` 上查状态要用 `inst.sg.sg.states[name] ~= nil`（模板的 `.sg` 字段才是状态表）；`GoToState` 对非法名字自会打印 INVALID STATE（薇格弗德 2026-10-29）。
 - **玩家逐帧位移**：玩家实体的电机速度被 locomotor 每帧覆写，`Physics:SetMotorVel` 无效；冲锋/突进用 timeline 事件分帧 `Transform:SetPosition` 步进（薇格弗德 2026-10-29）。
 - **需要碰撞的持续滑行**用 `Physics:SetMotorVelOverride(vx, 0, vz)`（局部坐标：先按 `Transform:GetRotation()` 把世界速度转过去），离开状态时 `ClearMotorVelOverride()` + `Stop()`；状态自循环（timeout 重入）时不要清，否则每圈顿一下。Hamlet `components/mapwrapper.lua` 就是这样推玩家的，比 `SetPosition` 步进少穿墙风险（机器人旋转电路 2026-11-06，源码；未实机）。
@@ -164,6 +169,9 @@
 - `customidleanim` 接入 `funnyidle` 时注意温度、饥饿、理智、中毒（哈姆雷特 `poisonable`）条件。
 
 ### 随从与 AI
+
+- **地图派遣既要处理水平碰撞，也要处理高度**：清除碰撞只能解决树、墙和海岸推挤，不能证明实体保持悬停；到达断言要分开检查 X/Z 与实际 Y，`GetDistanceSqToPoint(Vector3)` 包含高度。单机实测没有 `Physics:SetGravity`，不能照搬。对于用 Transform 显式积分且不再用电机跟随的地图无人机，采用 `Physics:SetActive(false)`，侦察机保持 DST 的 y=1.5；原生 `follower:StartLeashing` 仍要禁用，避免休眠时被拉回。需要物理电机的跟随/战斗实体不能一并停用物理。参考 `wx78/scripts/prefabs/wx78_drones.lua`（2026-11-17，源码 + RoG/重载/SW/Hamlet 实机，150 项通过，高度采样 y=1.5 稳定）。
+- **单机水面判定用 `world.Map:IsWater(tile)`**（机器人无人机 2026-11-17，源码 + RoG 合并 DLC 实测）：四份 Lua 源码没有通用全局 `IsWater`；探测不到它后直接放行会把水面当成陆地。SW/Hamlet 调用 Map 原生方法；兼容没有海洋接口的 Base 时先检查方法存在，并始终拒绝 `GROUND.IMPASSABLE` / `GROUND.INVALID`。
 
 - 移植联机版的自动拾取 / 采集 AI 时，**完整照搬联机版过滤条件**（`FindPickupableItem_filter`、`PICKUP_CANT_TAGS`）：跳过玩家当前缓冲动作的目标（`leader:GetBufferedAction().target`）、装备/武器/工具/护甲、容器、陷阱和诱饵、会动的生物、着火物品、`INLIMBO`/`NOCLICK`/`irreplaceable`/光源/暖石/建筑等标签；单机额外跳过哈姆雷特货架。缺了这些，随从会抢走玩家正要捡的东西。
 - `FindEntities` 不要无标签全量扫描：至少带上排除标签。
@@ -181,6 +189,17 @@
 - **SW/Hamlet 随从水上跟随三件套**：`amphibious` 标签（否则 `driver` 上船时 `HibernateLandFollowers` 清掉 `follower.leader`）、`follower:SetFollowExitDestinations({EXIT_DESTINATION.LAND, EXIT_DESTINATION.WATER})`（默认只有 LAND，主人在水上不牵引）、两栖物理 `MakeAmphibiousGhostPhysics` / 对应版本。Base/RoG 没有这些 API，要先探测。原版 `entitysleep` 牵引只在距离 > 40 时传送，地图边缘回绕、跨世界读档后要自己补距离检查（温蒂 2026-11-11，源码；未实机）。
 - 哈姆雷特同一时间只加载一个室内：跨世界存档前先离开当前房间（同原版 `TravelBetweenWorlds`）；室内内的传送不能当成「出到室外」处理，否则掉进虚空黑屏。
 - 组件尽早 `AddComponent`，`OnLoad` 兼容旧字段名，读档后延迟一帧再应用技能效果。
+
+### 薇诺娜工程系统补充（2026-11-18）
+
+- **Inspectacles 的正式题型池与动画 bank**：DST build 762172 的 `constants.lua` 只启用 WIRES / FREE1，GEARS / TAPE 是注释原型；接线图使用 bank `UI_inspectacles`、build `inspectacles`。旧移植只按 build 名设 bank 会丢棋盘；旋转时先把世界边转换回局部端口，再查导线类型。参考 `winona/scripts/widgets/inspectacleswidget.lua` 与 `_ai_work/dst_fidelity/offline.py`（官方常量/控件/动画资源源码核对 + 80 种旋转端口对照；原生按钮解题通过，截图采集全黑，未作视觉验收）。
+- **Hamlet `IsPointInInteriorBounds(pt)` 不是“是否在室内”**：原版 helper 在 `interiorspawner.current_interior == nil` 时也返回 true。必须先确认当前有已加载室内，再用它判断点的边界；否则室外扫描会被禁用，室外水面也可能绕过陆地检查。参考 `winona/scripts/winona_engineeringutils.lua`（Hamlet `simutil.lua` 源码 + 离线正反对照 + 原生室外扫描实测）。
+- **单机 `GIVE` 要求物品有 `tradable`，或目标 `trader.acceptnontradable`**：直接调用 `trader:AcceptGift` 能成功，不代表鼠标收集动作和 `ACTIONS.GIVE.fn` 能成功。胶带补 `tradable` 后走真实 GIVE 修复藏物箱。参考 `winona/scripts/prefabs/sewing_tape.lua`（单机 actions / tradable / inventoryitem 源码；原生测试证据见该模组最终报告）。
+- **单机 `Fueled` 的 section 回调只传 `(newsection, oldsection)`**，不能直接照搬 DST 需要第三个 `inst` 的函数。注册闭包捕获所属实体。参考 `winona/scripts/winona_remotecharge.lua`（单机 `components/fueled.lua` 源码 + 原生耗尽/充电实测）。
+- **随从主人优先探测 `GetLeader`，单机回退 `follower.leader`**。单机原版没有该 getter；炮弹友方过滤不能只看 `companion` 标签。参考 `winona/scripts/winona_engineeringutils.lua`（源码 + Lua 5.1 真实函数断言）。
+- **`SetBrain(brainfn)` 不保证立即创建大脑**：单机在 `inst.brain == nil` 时只保存构造函数，通常等苏醒回调 `RestartBrain`。已经醒着、关机后再启动的实体不会再收到苏醒事件，需要在设置后检查并 `RestartBrain()`。参考 `winona/scripts/prefabs/winona_storage_robot.lua`（源码 + 原生自动唤醒、实际搬运实测）。
+- **库存球体切回角色胶囊时，已唤醒刚体可能不再移动**：本案例 SG 正在跑、locomotor 速度为 5，但坐标不变。保存位置，`Physics:SetActive(false)` → 重设质量/胶囊/碰撞 → `SetActive(true)` → `Physics:Teleport` 恢复位置后，真实搬运恢复。此顺序只用于需要切换刚体形状的实体，不作为所有移动故障的通用处理。参考同一机器人文件（原生对照实测）。
+- **装备决定的持久组件要在人物读档前添加**：只在戴眼镜时添加 `inspectaclesparticipant`，会因为背包装备恢复时序丢失组件存档。人物构造阶段添加组件，`OnLoad` 保存实体引用，`LoadPostPass` 再关联 GUID。参考 `winona/scripts/prefabs/winona.lua` 与 `components/inspectaclesparticipant.lua`（源码 + 原生寻宝任务重载实测）。
 
 ## 6. 常用兼容垫片
 
