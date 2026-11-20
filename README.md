@@ -69,7 +69,6 @@ AI 读到 `AGENTS.md` 后：加载 `rules/` → 根据任务查 `skills/INDEX.md
 - **子代理**：复制 `agents/_template/`，在 `agents/INDEX.md` 登记；需要新的调用方式时在 `scripts/backends/` 加后端。
 - Python 脚本使用 Python 3.9+ 标准库；图片检查与 `--fix-alpha` 需要 Pillow。
 - **服务器运维**：技能在 `skills/server-ops/`，服务事实档案在 `skills/server-ops/services/`；配套 `scripts/server.py`（只读优先，写操作要 `--yes`，凭据只从 `private/secrets.json` 读、不回显）。
-- **后台任务与日志监视**：规则见 [rules/50-background-tasks.md](rules/50-background-tasks.md)；配套 `scripts/watch_log.py`，给 Monitor / 后台命令用的日志监视器，遇到结束标记、被测进程退出、标记文件出现或到时就自己结束，避免回合结束后再收到已处理过的通知。自测：`python -I scripts/tests/test_watch_log.py`。
 - **饥荒工坊上传**：技能在 `skills/steam-workshop-upload/`，配套 `scripts/workshop.ps1`（精简 C# 核心 + Klei 的 32 位 `steam_api.dll`，需要 .NET 10 SDK 与 x86 运行时）。授权规则只在 [rules/40-workshop-upload.md](rules/40-workshop-upload.md) 维护；任务配置、快照和构建产物放在目标项目的 `_ai_work/workshop/`。
 
 ## 公开前检查
